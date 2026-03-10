@@ -49,30 +49,80 @@ const app = {
 
 
     setupNavigation() {
-        const navItems = document.querySelectorAll('.nav-item');
+        const navItems = document.querySelectorAll('.nav-item[data-target]');
         const sections = document.querySelectorAll('.view-section');
+        const sidebar  = document.getElementById('sidebar');
+        const overlay  = document.getElementById('sidebar-overlay');
+        const hamburger = document.getElementById('hamburger-btn');
 
+        // --- Hamburger toggle ---
+        if (hamburger) {
+            hamburger.addEventListener('click', () => {
+                const isOpen = sidebar.classList.toggle('open');
+                hamburger.classList.toggle('open', isOpen);
+                overlay.classList.toggle('visible', isOpen);
+            });
+        }
+
+        // --- Close sidebar via overlay tap ---
+        if (overlay) {
+            overlay.addEventListener('click', () => this.closeSidebar());
+        }
+
+        // --- Navigate to a section by id ---
+        this.navigateTo = (targetId, pushHash = true) => {
+            // Update URL hash
+            if (pushHash && window.location.hash !== '#' + targetId) {
+                history.pushState(null, '', '#' + targetId);
+            }
+
+            // Activate nav item
+            navItems.forEach(nav => {
+                nav.classList.toggle('active', nav.getAttribute('data-target') === targetId);
+            });
+
+            // Show target section
+            sections.forEach(sec => sec.classList.remove('active'));
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) targetEl.classList.add('active');
+
+            // Refresh data and dates
+            this.refreshAll();
+            this.initializeDefaultDates();
+
+            // Close sidebar on mobile after navigation
+            this.closeSidebar();
+
+            // Scroll to top
+            window.scrollTo(0, 0);
+        };
+
+        // --- Close sidebar helper ---
+        this.closeSidebar = () => {
+            if (sidebar) sidebar.classList.remove('open');
+            if (hamburger) hamburger.classList.remove('open');
+            if (overlay) overlay.classList.remove('visible');
+        };
+
+        // --- Attach nav item click handlers ---
         navItems.forEach(item => {
             item.addEventListener('click', () => {
-                // Update active navigation state
-                navItems.forEach(nav => nav.classList.remove('active'));
-                item.classList.add('active');
-
-                // Show target section
                 const targetId = item.getAttribute('data-target');
-                sections.forEach(sec => sec.classList.remove('active'));
-
-                const targetEl = document.getElementById(targetId);
-                if (targetEl) {
-                    targetEl.classList.add('active');
-                }
-
-                // Refresh data when navigating
-                this.refreshAll();
-                // Ensure empty date fields default to today
-                this.initializeDefaultDates();
+                if (targetId) this.navigateTo(targetId);
             });
         });
+
+        // --- Handle hash change (back/forward & direct URL) ---
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash.replace('#', '');
+            const valid = hash && document.getElementById(hash);
+            this.navigateTo(valid ? hash : 'dashboard', false);
+        });
+
+        // --- Load from URL hash on init ---
+        const initialHash = window.location.hash.replace('#', '');
+        const initialTarget = (initialHash && document.getElementById(initialHash)) ? initialHash : 'dashboard';
+        this.navigateTo(initialTarget, !initialHash);
     },
 
     resetForm(formId) {
