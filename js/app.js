@@ -839,11 +839,17 @@ const app = {
             const tdActions = document.createElement('td');
             tdActions.className = 'actions-cell';
 
+            const btnEdit = document.createElement('button');
+            btnEdit.className = 'btn btn-small btn-edit';
+            btnEdit.textContent = '✏️ แก้ไขยอด';
+            btnEdit.onclick = () => this.editDebtBill(item.id, catName);
+
             const btnPay = document.createElement('button');
             if (item.isPaid) {
                 btnPay.className = 'btn btn-small btn-secondary';
                 btnPay.textContent = 'ยกเลิกจ่าย';
                 btnPay.onclick = () => this.toggleBillPaid(item.id, false);
+                btnEdit.style.display = 'none'; // Hide edit if paid
             } else {
                 btnPay.className = 'btn btn-small btn-primary';
                 btnPay.textContent = 'กดจ่าย';
@@ -862,6 +868,7 @@ const app = {
             };
 
             tdActions.appendChild(btnPay);
+            tdActions.appendChild(btnEdit);
             tdActions.appendChild(btnDel);
             tr.appendChild(tdActions);
             tbody.appendChild(tr);
@@ -874,6 +881,64 @@ const app = {
             Store.update(Store.keys.DEBT_PAYMENTS, billId, { isPaid });
             this.refreshAll();
         }
+    },
+
+    editDebtBill(billId, catName) {
+        const bill = Store.getById(Store.keys.DEBT_PAYMENTS, billId);
+        if (!bill || bill.isPaid) return;
+
+        const currentAmount = parseFloat(bill.amount) || 0;
+        const newAmountStr = prompt(`แก้ไขยอดเรียกเก็บสำหรับ:\n${catName}\n\nกรอกยอดใหม่ (จากเดิม ${UI.formatCurrency(currentAmount)}):`, currentAmount);
+        
+        if (newAmountStr === null) return;
+        
+        const newAmount = parseFloat(newAmountStr);
+        if (isNaN(newAmount) || newAmount < 0) {
+            alert("ยอดไม่ถูกต้อง");
+            return;
+        }
+
+        // Update the bill itself
+        Store.update(Store.keys.DEBT_PAYMENTS, billId, { amount: newAmount });
+
+        // If it's a debt bill (not an expense), sync back to DEBT_CAT customPayments
+        if (bill.debtId) {
+            const debt = Store.getById(Store.keys.DEBT_CAT, bill.debtId);
+            if (debt) {
+                // Find index of the month this bill belongs to
+                const allDebtBills = Store.getAll(Store.keys.DEBT_PAYMENTS)
+                    .filter(b => b.debtId === debt.id)
+                    .sort((a, b) => new Date(a.date) - new Date(b.date)); // Oldest first
+                
+                const billIndex = allDebtBills.findIndex(b => b.id === billId);
+
+                if (billIndex >= 0) {
+                    // Change payment setting to 'custom' to save the specific month amount
+                    let customPayments = debt.customPayments || [];
+                    
+                    // If switching from fixed, initialize custom payments with the fixed amount
+                    if (debt.paymentType !== 'custom' || customPayments.length === 0) {
+                        const terms = debt.termMonths || 1;
+                        const fixedAmt = debt.fixedPaymentAmount || (debt.totalAmount / terms);
+                        customPayments = Array(terms).fill(fixedAmt);
+                    }
+                    
+                    // Update the specific month
+                    customPayments[billIndex] = newAmount;
+                    
+                    Store.update(Store.keys.DEBT_CAT, debt.id, {
+                        paymentType: 'custom',
+                        customPayments: customPayments
+                    });
+                }
+            }
+        } else if (bill.categoryId) {
+            // It's a regular monthly expense bill. Let's update the master category too.
+            Store.update(Store.keys.EXPENSE_CAT, bill.categoryId, { amount: newAmount });
+        }
+
+        this.refreshAll();
+        alert('อัปเดตยอดบิลและรายการตั้งต้นสำเร็จ!');
     },
 
     // ============ MEAL SPLIT/BORROW MAIN UI ============
