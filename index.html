@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Tracker</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo">
+                <h2>Finance<span>Tracker</span></h2>
+            </div>
+            <nav class="nav-menu">
+                <button class="nav-item active" data-target="dashboard">
+                    <span class="icon">📊</span> แดชบอร์ด (Dashboard)
+                </button>
+
+                <div class="nav-section">จัดการหมวดหมู่</div>
+                <button class="nav-item" data-target="income-category">
+                    <span class="icon">📈</span> หมวดหมู่รายรับ
+                </button>
+                <button class="nav-item" data-target="expense-category">
+                    <span class="icon">📉</span> หมวดหมู่รายจ่าย
+                </button>
+                <button class="nav-item" data-target="debt-category">
+                    <span class="icon">💳</span> รายการหนี้สิน
+                </button>
+
+                <div class="nav-section">บันทึกรายการ</div>
+                <button class="nav-item" data-target="transaction-income">
+                    <span class="icon">💰</span> บันทึกรายรับ
+                </button>
+                <button class="nav-item" data-target="transaction-expense">
+                    <span class="icon">💸</span> บันทึกรายจ่าย
+                </button>
+
+                <div class="nav-section">การจัดการข้อมูล</div>
+                <button class="nav-item" data-target="transaction-debt">
+                    <span class="icon">🧾</span> บิลค้างชำระ (รายเดือน)
+                </button>
+                <button class="nav-item" data-target="meal-split">
+                    <span class="icon">🍚</span> ยืมคืน/ออกค่าข้าว
+                </button>
+                <button class="nav-item" onclick="app.exportData()">
+                    <span class="icon">📤</span> สำรองข้อมูล (Export)
+                </button>
+                <button class="nav-item" onclick="document.getElementById('import-file').click()">
+                    <span class="icon">📥</span> นำเข้าข้อมูล (Import)
+                </button>
+                <input type="file" id="import-file" style="display: none;" accept=".json"
+                    onchange="app.importData(this.files[0])">
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+
+            <!-- Dashboard View -->
+            <section id="dashboard" class="view-section active">
+                <header class="view-header">
+                    <h1>ภาพรวมการเงินของคุณ</h1>
+                    <p>สรุปข้อมูลรายรับ รายจ่าย และหนี้สินประจำเดือน</p>
+                </header>
+                <div class="dashboard-cards">
+                    <div class="card income-card">
+                        <h3>รายรับรวม</h3>
+                        <p class="amount" id="dash-total-income">฿0.00</p>
+                    </div>
+                    <div class="card expense-card">
+                        <h3>รายจ่ายรวม</h3>
+                        <p class="amount" id="dash-total-expense">฿0.00</p>
+                    </div>
+                    <div class="card balance-card">
+                        <h3>คงเหลือ</h3>
+                        <p class="amount" id="dash-balance">฿0.00</p>
+                    </div>
+                    <div class="card debt-unpaid-card"
+                        style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none;">
+                        <h3 style="color: rgba(255,255,255,0.9);">หนี้ค้างชำระ (บิลรอบนี้)</h3>
+                        <p class="amount" id="dash-unpaid-debt">฿0.00</p>
+                    </div>
+                    <div class="card debt-card">
+                        <h3 style="color: rgba(255,255,255,0.9);">หนี้สินคงค้างทั้งหมด</h3>
+                        <p class="amount" id="dash-total-debt">฿0.00</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Income Categories -->
+            <section id="income-category" class="view-section">
+                <header class="view-header">
+                    <h1>จัดการตารางประเภทรายรับ</h1>
+                </header>
+                <div class="content-panel">
+                    <form id="form-income-category" class="data-form">
+                        <input type="hidden" id="ic-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="ic-name">ชื่อประเภทรายรับ</label>
+                                <input type="text" id="ic-name" required placeholder="เช่น เงินเดือน, โบนัส">
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="ic-monthly">
+                            <label for="ic-monthly">รับทุกเดือน</label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-income-category')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-income-category" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อ</th>
+
+                                    <th>ทุกเดือน</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Expense Categories -->
+            <section id="expense-category" class="view-section">
+                <header class="view-header">
+                    <h1>จัดการตารางประเภทรายจ่าย</h1>
+                </header>
+                <div class="content-panel">
+                    <form id="form-expense-category" class="data-form">
+                        <input type="hidden" id="ec-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="ec-name">ชื่อประเภทรายจ่าย</label>
+                                <input type="text" id="ec-name" required placeholder="เช่น ค่าอาหาร, ค่าน้ำไฟ">
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="ec-monthly">
+                            <label for="ec-monthly">จ่ายทุกเดือน</label>
+                        </div>
+
+                        <div id="ec-amount-container" class="form-group row" style="display: none;">
+                            <div class="col">
+                                <label for="ec-amount">ยอดที่ต้องจ่ายประจำ (บาท)</label>
+                                <input type="number" id="ec-amount" min="0" placeholder="0">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-expense-category')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-expense-category" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อ</th>
+                                    <th>ยอดประจำ</th>
+                                    <th>ทุกเดือน</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Debt Categories -->
+            <section id="debt-category" class="view-section section-debt-master">
+                <header class="view-header">
+                    <div style="display:flex; align-items:center; gap:14px; margin-bottom:16px;">
+                        <div
+                            style="width:52px; height:52px; background:linear-gradient(135deg,#6366F1,#4338CA); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 12px rgba(99,102,241,0.35);">
+                            💳</div>
+                        <div>
+                            <h1 style="margin:0; font-size:24px;">รายการหนี้สิน</h1>
+                            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                                <span
+                                    style="background:#EEF2FF; color:#4338CA; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700;">📋
+                                    ข้อมูลตั้งต้น</span>
+                                <span style="color:#6366F1; font-size:13px; font-weight:500;">⚠️ ลบรายการนี้
+                                    จะลบ<u>บิลทั้งหมด</u>ของหนี้นั้นด้วย</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                <div class="content-panel">
+                    <form id="form-debt-category" class="data-form">
+                        <input type="hidden" id="dc-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="dc-name">📝 ชื่อหนี้สิน</label>
+                                <input type="text" id="dc-name" required placeholder="เช่น ผ่อนรถ, บัตรเครดิต">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="dc-total">💰 ยอดรวม (บาท)</label>
+                                <input type="number" id="dc-total" min="0" required placeholder="0">
+                            </div>
+                            <div class="col">
+                                <label for="dc-term">📅 จำนวนงวด (เดือน)</label>
+                                <input type="number" id="dc-term" min="1" required placeholder="1">
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="dc-due">🗓 วันกำหนดชำระ</label>
+                                <input type="text" id="dc-due" placeholder="เช่น วันที่ 5 ของทุกเดือน">
+                            </div>
+                            <div class="col">
+                                <label for="dc-loan-date">📆 วันที่เริ่มกู้ยืม / เริ่มผ่อน</label>
+                                <input type="date" id="dc-loan-date">
+                            </div>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="dc-monthly">
+                            <label for="dc-monthly">🔄 สร้างบิลอัตโนมัติทุกเดือน</label>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">💾 บันทึกข้อมูล</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-debt-category')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-debt-category" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อหนี้สิน</th>
+                                    <th>ยอดรวม</th>
+                                    <th>วันกำหนด</th>
+                                    <th>งวด</th>
+                                    <th>วันที่ยืม</th>
+                                    <th>ทุกเดือน</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Track Income Transactions -->
+            <section id="transaction-income" class="view-section">
+                <header class="view-header">
+                    <h1>ตารางรายรับ</h1>
+                </header>
+                <div class="content-panel">
+                    <form id="form-trans-income" class="data-form">
+                        <input type="hidden" id="ti-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="ti-date">วันที่</label>
+                                <input type="date" id="ti-date" required>
+                            </div>
+                            <div class="col">
+                                <label for="ti-category">ID ประเภทรายรับ</label>
+                                <select id="ti-category" required>
+                                    <option value="">-- เลือกประเภทรายรับ --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="ti-amount">ยอดรับ (บาท)</label>
+                                <input type="number" id="ti-amount" min="1" required placeholder="0">
+                            </div>
+                            <div class="col">
+                                <label for="ti-note">หมายเหตุ</label>
+                                <input type="text" id="ti-note" placeholder="รายละเอียดเพิ่มเติม">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">บันทึกรายรับ</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-trans-income')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-trans-income" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ID ประเภทรายรับ</th>
+                                    <th>ชื่อรายรับ</th>
+                                    <th>ยอด</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Track Expense Transactions -->
+            <section id="transaction-expense" class="view-section">
+                <header class="view-header">
+                    <h1>ตารางรายจ่าย</h1>
+                </header>
+                <div class="content-panel">
+                    <form id="form-trans-expense" class="data-form">
+                        <input type="hidden" id="te-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="te-date">วันที่</label>
+                                <input type="date" id="te-date" required>
+                            </div>
+                            <div class="col">
+                                <label for="te-category">ID ประเภทรายจ่าย</label>
+                                <select id="te-category" required>
+                                    <option value="">-- เลือกประเภทรายจ่าย --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="te-amount">ยอดรายจ่าย (บาท)</label>
+                                <input type="number" id="te-amount" min="1" required placeholder="0">
+                            </div>
+                            <div class="col">
+                                <label for="te-note">หมายเหตุ</label>
+                                <input type="text" id="te-note" placeholder="รายละเอียดเพิ่มเติม">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">บันทึกรายจ่าย</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-trans-expense')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-trans-expense" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>วันที่</th>
+                                    <th>ID ประเภทรายจ่าย</th>
+                                    <th>ชื่อรายจ่าย</th>
+                                    <th>ยอด</th>
+                                    <th>หมายเหตุ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Track Debt Payments / Unpaid Bills -->
+            <section id="transaction-debt" class="view-section">
+                <header class="view-header">
+                    <h1>บิลหนี้ (หนี้ค้างชำระ)</h1>
+                    <p>รายการบิลจะถูกสร้างอัตโนมัติตามเดือนปัจจุบัน จากหน้าหมวดหมู่ที่ตั้งค่า ‘จ่ายทุกเดือน’</p>
+                </header>
+                <div class="content-panel">
+                    <div class="form-actions"
+                        style="padding: 24px; border-bottom: 1px solid var(--border); margin-top: 0;">
+                        <button type="button" class="btn btn-primary" onclick="app.generateCurrentMonthBills()">
+                            สร้าง/อัพเดทบิลเดือนนี้อัตโนมัติ
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="table-trans-debt" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>วันที่ (รอบบิล)</th>
+                                    <th>ID หนี้สิน</th>
+                                    <th>ชื่อหนี้สิน</th>
+                                    <th>ยอดเรียกเก็บ</th>
+                                    <th>สถานะ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Meal Split / ออกค่าข้าว -->
+            <section id="meal-split" class="view-section">
+                <header class="view-header">
+                    <h1>🍚 ยืมคืน / ออกค่าข้าว</h1>
+                    <p>บันทึกการออกค่าข้าวแทนกัน แล้วหารเฉลี่ยหรือกำหนดยอดของแต่ละคน</p>
+                </header>
+                <div class="content-panel">
+
+                    <!-- Main Tabs (ให้ยืม / ขอยืม) -->
+                    <div style="display:flex; gap:10px; margin-bottom:20px;">
+                        <button id="meal-main-tab-lend" class="btn btn-primary" onclick="app.switchMealMainTab('lend')"
+                            style="flex:1;">📤 ให้ยืม / ออกให้</button>
+                        <button id="meal-main-tab-borrow" class="btn btn-secondary"
+                            onclick="app.switchMealMainTab('borrow')" style="flex:1;">📥 ขอยืม / คนอื่นออกให้</button>
+                    </div>
+
+                    <!-- ให้ยืม Section -->
+                    <div id="meal-lend-section">
+                        <form id="form-meal-split" class="data-form">
+                            <div class="form-group row">
+                                <div class="col">
+                                    <label for="ms-date">วันที่</label>
+                                    <input type="date" id="ms-date" required>
+                                </div>
+                                <div class="col">
+                                    <label for="ms-total">ราคารวม (บาท)</label>
+                                    <input type="number" id="ms-total" min="1" required placeholder="0">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="ms-note">หมายเหตุ (เช่น ชื่อร้าน รายการ)</label>
+                                <input type="text" id="ms-note" placeholder="เช่น ข้าวมันไก่ ร้านเจ๊แดง">
+                            </div>
+                            <div class="form-group checkbox-group">
+                                <input type="checkbox" id="ms-split-check">
+                                <label for="ms-split-check">หารค่าข้าว</label>
+                            </div>
+                            <div id="ms-borrower-container" class="form-group row">
+                                <div class="col">
+                                    <label for="ms-borrower-name">ชื่อคนยืม / คนที่ออกให้ (ถ้ามี)</label>
+                                    <input type="text" id="ms-borrower-name" placeholder="ระบุชื่อ (เว้นว่างถ้าออกเอง)">
+                                </div>
+                            </div>
+                            <div id="ms-person-count-container" class="form-group row" style="display:none;">
+                                <div class="col">
+                                    <label for="ms-person-count">จำนวนคน</label>
+                                    <input type="number" id="ms-person-count" min="2" value="2" placeholder="2">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">บันทึก และตั้งค่าบิล</button>
+                                <button type="button" class="btn btn-secondary"
+                                    onclick="app.resetForm('form-meal-split')">ล้างข้อมูล</button>
+                            </div>
+                        </form>
+
+                        <div class="table-container">
+                            <table id="table-meal-split" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่</th>
+                                        <th>หมายเหตุ</th>
+                                        <th>ราคารวม</th>
+                                        <th>หาร</th>
+                                        <th>จำนวนคน</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- ขอยืม Section -->
+                    <div id="meal-borrow-section" style="display:none;">
+                        <form id="form-meal-borrow" class="data-form">
+                            <div class="form-group row">
+                                <div class="col">
+                                    <label for="mb-date">วันที่ขอยืม</label>
+                                    <input type="date" id="mb-date" required>
+                                </div>
+                                <div class="col">
+                                    <label for="mb-total">ยอดเงิน (บาท)</label>
+                                    <input type="number" id="mb-total" min="1" required placeholder="0">
+                                </div>
+                            </div>
+                            <div class="form-group row">
+                                <div class="col">
+                                    <label for="mb-lender-name">ยืมใครมา? (ชื่อคนให้ยืม)</label>
+                                    <input type="text" id="mb-lender-name" required placeholder="เช่น พี่ A, เพื่อน B">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="mb-note">หมายเหตุ (เช่น ชื่อร้าน)</label>
+                                <input type="text" id="mb-note" placeholder="เช่น ค่ากาแฟ, ค่ารถ">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">บันทึกรายการขอยืม</button>
+                                <button type="button" class="btn btn-secondary"
+                                    onclick="app.resetForm('form-meal-borrow')">ล้างข้อมูล</button>
+                            </div>
+                        </form>
+
+                        <div class="table-container">
+                            <table id="table-meal-borrow" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>วันที่</th>
+                                        <th>ยืมใครมา?</th>
+                                        <th>หมายเหตุ</th>
+                                        <th>ยอดเงิน</th>
+                                        <th>สถานะ</th>
+                                        <th>จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Meal Split Bill Modal -->
+    <div id="meal-bill-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:1100; align-items:center; justify-content:center;">
+        <div
+            style="background:white; padding:32px; border-radius:16px; width:92%; max-width:520px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="font-size:28px;">🍚</span>
+                <h3 style="margin:0; font-size:20px; color:#111827;">ตั้งค่าบิลออกค่าข้าว</h3>
+            </div>
+            <p id="meal-bill-summary" style="color:#6B7280; margin-bottom:20px; font-size:14px;"></p>
+
+            <!-- Toggle: หารเท่าๆ / กรอกเอง -->
+            <div style="display:flex; gap:10px; margin-bottom:20px;">
+                <button id="meal-bill-tab-equal" class="btn btn-primary btn-small"
+                    onclick="app.switchMealBillTab('equal')" style="flex:1;">⚖️ หารเท่าๆ กัน</button>
+                <button id="meal-bill-tab-custom" class="btn btn-secondary btn-small"
+                    onclick="app.switchMealBillTab('custom')" style="flex:1;">✏️ กรอกเอง</button>
+            </div>
+
+            <!-- หารเท่าๆ -->
+            <div id="meal-bill-equal-section">
+                <div
+                    style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:16px 20px; margin-bottom:16px;">
+                    <p style="margin:0; font-weight:600; color:#166534; font-size:15px;">💰 แต่ละคนจ่าย: <span
+                            id="meal-bill-per-person" style="font-size:20px; color:#059669;">฿0.00</span></p>
+                </div>
+                <div id="meal-bill-equal-list" style="display:flex; flex-direction:column; gap:8px;">
+                    <!-- JS will generate person rows -->
+                </div>
+            </div>
+
+            <!-- กรอกเอง -->
+            <div id="meal-bill-custom-section" style="display:none;">
+                <div id="meal-bill-custom-list" style="display:flex; flex-direction:column; gap:10px;">
+                    <!-- JS will generate name+amount rows -->
+                </div>
+            </div>
+
+            <div
+                style="display:flex; gap:12px; justify-content:flex-end; margin-top:24px; border-top:1px solid #E5E7EB; padding-top:20px;">
+                <button class="btn btn-secondary" onclick="app.closeMealBillModal()">ยกเลิก</button>
+                <button class="btn btn-primary" onclick="app.saveMealBill()">💾 บันทึกบิล</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Bill View Modal (หน้าต่างบิล) -->
+    <div id="meal-view-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:1100; align-items:center; justify-content:center;">
+        <div
+            style="background:white; padding:32px; border-radius:16px; width:92%; max-width:520px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 40px rgba(0,0,0,0.2);">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                <span style="font-size:28px;">🧾</span>
+                <h3 style="margin:0; font-size:20px; color:#111827;">หน้าต่างบิล</h3>
+            </div>
+            <p id="meal-view-summary" style="color:#6B7280; margin-bottom:20px; font-size:14px;"></p>
+            <div id="meal-view-list" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+                <!-- JS will render member bills here -->
+            </div>
+            <div
+                style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px; border-top:1px solid #E5E7EB; padding-top:16px;">
+                <button class="btn btn-secondary"
+                    onclick="document.getElementById('meal-view-modal').style.display='none'">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="custom-confirm-modal" class="modal-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-content"
+            style="background: white; padding: 24px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; margin-bottom: 12px; color: var(--text-dark);">ยืนยันการทำรายการ</h3>
+            <p id="custom-confirm-message" style="margin-bottom: 24px; color: var(--text-light); line-height: 1.5;"></p>
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button id="custom-confirm-cancel" class="btn btn-secondary">ยกเลิก</button>
+                <button id="custom-confirm-ok" class="btn btn-danger">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Installments Modal -->
+    <div id="installment-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <h3 style="margin-top: 0;">จัดการค่างวดแต่ละเดือน</h3>
+            <p id="installment-debt-name" style="color: #666; margin-bottom: 16px;"></p>
+            <input type="hidden" id="inst-debt-id">
+
+            <div class="form-group checkbox-group"
+                style="margin-bottom: 20px; background: #f0fdf4; padding: 12px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                <input type="checkbox" id="inst-is-fixed">
+                <label for="inst-is-fixed"
+                    style="font-weight: bold; color: #166534;">จ่ายยอดคงที่เท่ากันทุกเดือน</label>
+            </div>
+
+            <!-- Fixed Input Section -->
+            <div id="inst-fixed-section" class="form-group row" style="display: none;">
+                <div class="col">
+                    <label>ค่างวดคงที่ (บาท/เดือน)</label>
+                    <input type="number" id="inst-fixed-amount" min="0" placeholder="0">
+                </div>
+            </div>
+
+            <!-- Variable Inputs Section -->
+            <div id="inst-variable-section" class="form-group">
+                <label>กำหนดค่างวดแต่ละเดือน (รายงวด)</label>
+                <div id="inst-months-container"
+                    style="max-height: 280px; overflow-y: auto; padding-right: 12px; margin-top: 10px;">
+                    <!-- JS will generate inputs here -->
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 24px;">
+                <button type="button" class="btn btn-primary" onclick="app.saveInstallments()">บันทึกค่างวด</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('installment-modal').style.display='none'">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Startup Choice Modal -->
+    <div id="startup-modal" class="modal-overlay"
+        style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
+        <div class="modal-content"
+            style="background: white; padding: 40px; border-radius: 20px; width: 90%; max-width: 500px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div style="font-size: 64px; margin-bottom: 20px;">🏦</div>
+            <h2 style="margin-top: 0; margin-bottom: 15px; color: var(--text-dark); font-size: 28px;">ยินดีต้อนรับสู่
+                FinanceTracker</h2>
+            <p style="margin-bottom: 35px; color: var(--text-light); line-height: 1.6; font-size: 16px;">
+                กรุณาเลือกรูปแบบการเข้าใช้งานประจำวันนี้ เพื่อความปลอดภัยของข้อมูล</p>
+
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <button onclick="app.startFresh()" class="btn btn-primary"
+                    style="padding: 16px; font-size: 18px; border-radius: 12px;">
+                    ✨ เริ่มต้นใช้งานใหม่ (สร้างข้อมูลใหม่)
+                </button>
+                <div style="display: flex; align-items: center; gap: 10px; margin: 5px 0;">
+                    <hr style="flex: 1; border: 0; border-top: 1px solid #e5e7eb;">
+                    <span style="color: #9ca3af; font-size: 14px;">หรือ</span>
+                    <hr style="flex: 1; border: 0; border-top: 1px solid #e5e7eb;">
+                </div>
+                <button onclick="document.getElementById('import-file').click()" class="btn btn-secondary"
+                    style="padding: 16px; font-size: 18px; border-radius: 12px; background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb;">
+                    📂 นำเข้าข้อมูลสำรอง (Import JSON)
+                </button>
+            </div>
+            <p style="margin-top: 25px; font-size: 12px; color: #9ca3af;">*
+                การนำเข้าข้อมูลจะล้างข้อมูลเดิมในเครื่องนี้ทั้งหมด</p>
+        </div>
+    </div>
+
+    <script src="js/store.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+    <script>
+        // Fallback to ensure today's date is set even if external scripts have issues
+        (function () {
+            function setToday() {
+                const today = new Date().toLocaleDateString('en-CA');
+                ['dc-loan-date', 'ti-date', 'te-date', 'ms-date'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el && !el.value) el.value = today;
+                });
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setToday);
+            } else {
+                setToday();
+            }
+            // Also hook into navigation clicks
+            document.addEventListener('click', function (e) {
+                if (e.target.classList.contains('nav-item')) {
+                    setTimeout(setToday, 50);
+                }
+            });
+        })();
+    </script>
+</body>
+
+</html>

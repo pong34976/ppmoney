@@ -1,0 +1,256 @@
+const Store = {
+    // Keys mapping
+    keys: {
+        INCOME_CAT: 'finance_income_categories',
+        EXPENSE_CAT: 'finance_expense_categories',
+        DEBT_CAT: 'finance_debt_categories',
+        INCOMES: 'finance_incomes',
+        EXPENSES: 'finance_expenses',
+        DEBT_PAYMENTS: 'finance_debt_payments',
+        MEAL_SPLITS: 'finance_meal_splits'
+    },
+
+    // Initialize mock data if empty
+    init() {
+        Object.values(this.keys).forEach(key => {
+            if (!localStorage.getItem(key)) {
+                localStorage.setItem(key, JSON.stringify([]));
+            }
+        });
+    },
+
+    // Read
+    getAll(key) {
+        try {
+            return JSON.parse(localStorage.getItem(key)) || [];
+        } catch (e) {
+            console.error("Error reading from localStorage", e);
+            return [];
+        }
+    },
+
+    getById(key, id) {
+        const items = this.getAll(key);
+        return items.find(item => item.id === id);
+    },
+
+    // Write
+    add(key, item) {
+        const items = this.getAll(key);
+
+        // Generate prefix based on key
+        let prefix = 'OBJ';
+        if (key === this.keys.INCOME_CAT) prefix = 'INC';
+        if (key === this.keys.EXPENSE_CAT) prefix = 'EXP';
+        if (key === this.keys.DEBT_CAT) prefix = 'DBT';
+        if (key === this.keys.INCOMES) prefix = 'T-INC';
+        if (key === this.keys.EXPENSES) prefix = 'T-EXP';
+        if (key === this.keys.DEBT_PAYMENTS) prefix = 'T-DBT';
+        if (key === this.keys.MEAL_SPLITS) prefix = 'MEAL';
+
+        // Simple random ID generation
+        item.id = `${prefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        items.push(item);
+        localStorage.setItem(key, JSON.stringify(items));
+        return item;
+    },
+
+    update(key, id, updatedData) {
+        const items = this.getAll(key);
+        const index = items.findIndex(item => item.id === id);
+        if (index !== -1) {
+            items[index] = { ...items[index], ...updatedData, id }; // Keep original ID
+            localStorage.setItem(key, JSON.stringify(items));
+            return items[index];
+        }
+        return null;
+    },
+
+    delete(key, id) {
+        const items = this.getAll(key);
+        const filtered = items.filter(item => item.id !== id);
+        localStorage.setItem(key, JSON.stringify(filtered));
+
+        // Clean up related transactions if a category/debt is deleted
+        if (key === this.keys.INCOME_CAT) {
+            this._deleteRelatedTransactions(this.keys.INCOMES, 'categoryId', id);
+        } else if (key === this.keys.EXPENSE_CAT) {
+            this._deleteRelatedTransactions(this.keys.EXPENSES, 'categoryId', id);
+        } else if (key === this.keys.DEBT_CAT) {
+            this._deleteRelatedTransactions(this.keys.DEBT_PAYMENTS, 'debtId', id);
+        }
+    },
+
+    _deleteRelatedTransactions(transKey, refField, refId) {
+        const transactions = this.getAll(transKey);
+        const filtered = transactions.filter(t => t[refField] !== refId);
+        if (transactions.length !== filtered.length) {
+            localStorage.setItem(transKey, JSON.stringify(filtered));
+        }
+    },
+
+    // Auto-generate bills for monthly debts AND monthly expenses
+    generateMonthlyBillsForCurrentMonth() {
+        const debts = this.getAll(this.keys.DEBT_CAT).filter(d => d.monthly);
+        const expenseCats = this.getAll(this.keys.EXPENSE_CAT).filter(c => c.monthly);
+        const bills = this.getAll(this.keys.DEBT_PAYMENTS);
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        let newBillsCount = 0;
+
+        // 1. Process Debts
+        debts.forEach(debt => {
+            const alreadyExists = bills.some(b => {
+                if (b.debtId !== debt.id) return false;
+                const [bYear, bMonth] = b.date.split('-');
+                return parseInt(bMonth, 10) - 1 === currentMonth && parseInt(bYear, 10) === currentYear;
+            });
+
+            let loanHasStarted = true;
+            if (debt.loanDate) {
+                const [lYear, lMonth] = debt.loanDate.split('-').map(s => parseInt(s, 10));
+                if (lYear > currentYear) loanHasStarted = false;
+                else if (lYear === currentYear && (lMonth - 1) > currentMonth) loanHasStarted = false;
+            }
+
+            if (!alreadyExists && loanHasStarted) {
+                const monthStr = String(currentMonth + 1).padStart(2, '0');
+                const billDateStr = `${currentYear}-${monthStr}-01`;
+                const existingDebtBills = bills.filter(b => b.debtId === debt.id);
+                const billIndex = existingDebtBills.length;
+
+                if (debt.termMonths && billIndex >= debt.termMonths) return;
+
+                let paymentAmount = 0;
+                if (debt.paymentType === 'custom' && debt.customPayments && debt.customPayments.length > billIndex) {
+                    paymentAmount = debt.customPayments[billIndex];
+                } else {
+                    paymentAmount = debt.fixedPaymentAmount || (debt.termMonths > 0 ? (debt.totalAmount / debt.termMonths) : debt.totalAmount);
+                }
+
+                this.add(this.keys.DEBT_PAYMENTS, {
+                    date: billDateStr,
+                    debtId: debt.id,
+                    amount: paymentAmount,
+                    isPaid: false
+                });
+                newBillsCount++;
+            }
+        });
+
+        // 2. Process Monthly Expenses
+        expenseCats.forEach(cat => {
+            const alreadyExists = bills.some(b => {
+                if (b.categoryId !== cat.id) return false;
+                const [bYear, bMonth] = b.date.split('-');
+                return parseInt(bMonth, 10) - 1 === currentMonth && parseInt(bYear, 10) === currentYear;
+            });
+
+            if (!alreadyExists) {
+                const monthStr = String(currentMonth + 1).padStart(2, '0');
+                const billDateStr = `${currentYear}-${monthStr}-01`;
+
+                this.add(this.keys.DEBT_PAYMENTS, {
+                    date: billDateStr,
+                    categoryId: cat.id,
+                    amount: parseFloat(cat.amount) || 0,
+                    isPaid: false
+                });
+                newBillsCount++;
+            }
+        });
+
+        return newBillsCount;
+    },
+
+    getDashboardStats() {
+        const incomes = this.getAll(this.keys.INCOMES);
+        const expenses = this.getAll(this.keys.EXPENSES);
+        const debts = this.getAll(this.keys.DEBT_CAT);
+        const debtPayments = this.getAll(this.keys.DEBT_PAYMENTS);
+
+        const paidBills = debtPayments.filter(dp => dp.isPaid === true);
+        const unpaidBills = debtPayments.filter(dp => dp.isPaid === false);
+
+        const totalIncome = incomes.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Base expenses + Paid regular expense bills
+        const baseExpenseAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+        const paidExpenseBillsAmount = paidBills
+            .filter(b => b.categoryId) // Only regular expenses, not debt payments
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        const totalExpense = baseExpenseAmount + paidExpenseBillsAmount;
+
+        // Calculate Debt Parts
+        // Unpaid current bills (both debt and expenses for dashboard notification)
+        const unpaidDebtAmount = unpaidBills.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Paid debt bills (for balance and debt remaining)
+        const totalPaidDebtAmount = paidBills
+            .filter(b => b.debtId)
+            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+
+        // Total Base Debt - Paid Debt Bills
+        const totalDebtAmount = debts.reduce((sum, item) => sum + parseFloat(item.totalAmount || 0), 0);
+        const debtRemaining = Math.max(0, totalDebtAmount - totalPaidDebtAmount);
+
+        // Account balance (Income - Base Expense - Total Paid Bills)
+        const totalPaidBillsAmount = paidBills.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+        const balance = totalIncome - baseExpenseAmount - totalPaidBillsAmount;
+
+        return {
+            totalIncome,
+            totalExpense,
+            balance,
+            debtRemaining,
+            unpaidDebtAmount
+        };
+    },
+
+    // Export all data to a JSON string
+    exportData() {
+        const data = {};
+        Object.keys(this.keys).forEach(keyName => {
+            const storageKey = this.keys[keyName];
+            data[storageKey] = this.getAll(storageKey);
+        });
+        return JSON.stringify(data, null, 2);
+    },
+
+    // Import data from a JSON string
+    importData(jsonString) {
+        try {
+            const data = JSON.parse(jsonString);
+            if (!data || typeof data !== 'object') throw new Error("Invalid format");
+
+            this.clearAll();
+
+            // Set data from JSON
+            Object.keys(data).forEach(storageKey => {
+                localStorage.setItem(storageKey, JSON.stringify(data[storageKey]));
+            });
+
+            // Ensure all required keys exist (init will fill missing ones with [])
+            this.init();
+
+            console.log("Data imported successfully:", Object.keys(data));
+            return true;
+        } catch (e) {
+            console.error("Error importing data:", e);
+            return false;
+        }
+    },
+
+    // Clear all financial data
+    clearAll() {
+        Object.values(this.keys).forEach(storageKey => {
+            localStorage.setItem(storageKey, JSON.stringify([]));
+        });
+    }
+};
+
+Store.init();
