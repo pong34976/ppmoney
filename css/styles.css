@@ -502,6 +502,40 @@ select:focus {
 }
 
 /* ============================================
+   CALCULATOR MODAL
+   ============================================ */
+.calc-btn {
+    background: #3d3d3d;
+    color: white;
+    border: none;
+    padding: 18px 0;
+    border-radius: 10px;
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s, transform 0.1s;
+    font-family: 'Inter', sans-serif;
+}
+
+.calc-btn:active {
+    transform: scale(0.95);
+    background: #4d4d4d;
+}
+
+.calc-action:active { background: #ff6b81 !important; }
+.calc-op:active { background: #ffa502 !important; }
+.calc-eq:active { background: #7bed9f !important; }
+
+/* hide scrollbar in calc display */
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* ============================================
    SECTION ACCENTS
    ============================================ */
 .section-debt-master .view-header h1 { color: #4338CA; }

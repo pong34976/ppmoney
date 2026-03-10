@@ -1,4 +1,15 @@
 const app = {
+    // Calculator State
+    calcState: {
+        val1: null,
+        val2: null,
+        op: null,
+        display: '0',
+        history: '',
+        newNum: true,
+        targetInputId: null
+    },
+
     init() {
         this.setupNavigation();
         this.setupForms();
@@ -360,6 +371,129 @@ const app = {
             alert(`อัพเดทสำเร็จ! สร้างบิลใหม่รอบเดือนนี้จำนวน ${count} รายการ`);
         } else {
             alert('ไม่มีรายการบิลใหม่ที่ต้องสร้าง (บิลรอบเดือนนี้มีอยู่แล้ว)');
+        }
+    },
+
+    // ============ CALCULATOR FUNCTIONS ============
+    toggleCalculator(targetInputId = null) {
+        const modal = document.getElementById('calculator-modal');
+        if (!modal) return;
+        
+        const isOpening = modal.style.display !== 'flex';
+        if (isOpening) {
+            modal.style.display = 'flex';
+            this.calcState.targetInputId = targetInputId;
+            
+            // Show/hide use result button based on if we opened it from an input
+            const useBtn = document.getElementById('calc-use-btn');
+            if (useBtn) {
+                useBtn.style.display = targetInputId ? 'block' : 'none';
+            }
+        } else {
+            modal.style.display = 'none';
+        }
+    },
+
+    calcInput(btn) {
+        let s = this.calcState;
+        
+        if (btn === 'AC') {
+            s.val1 = null; s.val2 = null; s.op = null;
+            s.display = '0'; s.history = ''; s.newNum = true;
+        } 
+        else if (btn === 'DEL') {
+            if (!s.newNum) {
+                s.display = s.display.length > 1 ? s.display.slice(0, -1) : '0';
+                if (s.display === '0') s.newNum = true;
+            }
+        }
+        else if (['+', '-', '×', '÷'].includes(btn)) {
+            if (s.op && !s.newNum) {
+                this.calcCalculate(); // chain calc
+            } else {
+                s.val1 = parseFloat(s.display);
+            }
+            s.op = btn;
+            s.newNum = true;
+            s.history = `${s.val1} ${s.op}`;
+        }
+        else if (btn === '=') {
+            if (s.op && !s.newNum) {
+                this.calcCalculate();
+                s.op = null;
+                s.history = '';
+                s.newNum = true;
+            }
+        }
+        else if (btn === '.') {
+            if (s.newNum) {
+                s.display = '0.';
+                s.newNum = false;
+            } else if (!s.display.includes('.')) {
+                s.display += '.';
+            }
+        }
+        else { // Numbers
+            if (s.newNum) {
+                s.display = btn;
+                s.newNum = false;
+            } else {
+                // Prevent multiple leading zeros unless it's a decimal
+                if (s.display === '0') s.display = btn;
+                else s.display += btn;
+            }
+            // limit length
+            if (s.display.length > 15) s.display = s.display.slice(0, 15);
+        }
+
+        this.calcUpdateUI();
+    },
+
+    calcCalculate() {
+        let s = this.calcState;
+        s.val2 = parseFloat(s.display);
+        if (isNaN(s.val1) || isNaN(s.val2)) return;
+
+        let res = 0;
+        // high precision workaround using decimals
+        const factor = 1000000; 
+        const v1 = Math.round(s.val1 * factor);
+        const v2 = Math.round(s.val2 * factor);
+
+        switch (s.op) {
+            case '+': res = (v1 + v2) / factor; break;
+            case '-': res = (v1 - v2) / factor; break;
+            case '×': res = (v1 * v2) / (factor * factor); break;
+            case '÷': res = v2 === 0 ? 'Error' : (v1 / v2); break;
+        }
+
+        if (res !== 'Error') {
+            // format to avoid long floating point issues (e.g. 0.300000000004)
+            res = parseFloat(res.toFixed(6)); 
+            s.display = res.toString();
+            s.val1 = res;
+        } else {
+            s.display = 'Error';
+            s.val1 = null;
+        }
+        s.history = `${s.val1} ${s.op} ${s.val2} =`;
+    },
+
+    calcUpdateUI() {
+        document.getElementById('calc-display').textContent = this.calcState.display;
+        document.getElementById('calc-history').textContent = this.calcState.history;
+    },
+
+    calcUseResult() {
+        if (this.calcState.targetInputId && this.calcState.display !== 'Error') {
+            const el = document.getElementById(this.calcState.targetInputId);
+            if (el) {
+                el.value = this.calcState.display;
+                // Dispatch event to trigger any watchers
+                el.dispatchEvent(new Event('input', { bubbles: true }));
+                el.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            this.toggleCalculator();
         }
     },
 
