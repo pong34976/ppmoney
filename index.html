@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Finance Tracker</title>
+    <title>PP Money</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -17,7 +17,7 @@
         <button class="hamburger-btn" id="hamburger-btn" aria-label="เมนู">
             <span></span><span></span><span></span>
         </button>
-        <div class="mobile-logo">Finance<span>Tracker</span></div>
+        <div class="mobile-logo">PP<span>Money</span></div>
     </header>
 
     <!-- Sidebar Overlay (mobile) -->
@@ -27,7 +27,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="logo">
-                <h2>Finance<span>Tracker</span></h2>
+                <h2>PP<span>Money</span></h2>
             </div>
             <nav class="nav-menu">
                 <button class="nav-item active" data-target="dashboard">
@@ -64,6 +64,9 @@
                 </button>
                 <button class="nav-item" data-target="meal-split">
                     <span class="icon">🍚</span> ยืมคืน/ออกค่าข้าว
+                </button>
+                <button class="nav-item" onclick="app.exportForAI()">
+                    <span class="icon">🤖</span> ส่งออกให้ AI ประเมิน
                 </button>
                 <button class="nav-item" onclick="app.exportData()">
                     <span class="icon">📤</span> สำรองข้อมูล (Export)
@@ -106,6 +109,36 @@
                     <div class="card debt-card">
                         <h3 style="color: rgba(255,255,255,0.9);">หนี้สินคงค้างทั้งหมด</h3>
                         <p class="amount" id="dash-total-debt">฿0.00</p>
+                    </div>
+                </div>
+
+                <!-- Daily Report Section -->
+                <div class="dashboard-section mt-4" style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h2 style="font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 20px;">📅</span> สรุปรายจ่ายวันนี้
+                        </h2>
+                        <div style="background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px;">
+                            ใช้ไป: <span id="dash-today-expense">฿0.00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+                        <table id="table-dash-daily" class="data-table" style="margin-bottom: 0;">
+                            <thead>
+                                <tr>
+                                    <th>หมวดหมู่</th>
+                                    <th>รายการ</th>
+                                    <th style="text-align: right;">ยอดเงิน</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                        <div id="dash-daily-empty" style="text-align: center; padding: 24px; color: #6b7280; font-size: 14px; display: none;">
+                            ไม่มีรายการใช้จ่ายในวันนี้ ✨
+                        </div>
                     </div>
                 </div>
             </section>
@@ -178,7 +211,9 @@
                                 <label for="ec-amount">ยอดที่ต้องจ่ายประจำ (บาท)</label>
                                 <div style="display: flex; gap: 8px;">
                                     <input type="number" id="ec-amount" min="0" placeholder="0" style="flex: 1;">
-                                    <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('ec-amount')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="app.toggleCalculator('ec-amount')" style="padding: 0 14px;"
+                                        title="เปิดเครื่องคิดเลข">🧮</button>
                                 </div>
                             </div>
                         </div>
@@ -238,8 +273,11 @@
                             <div class="col">
                                 <label for="dc-total">💰 ยอดรวม (บาท)</label>
                                 <div style="display: flex; gap: 8px;">
-                                    <input type="number" id="dc-total" min="0" required placeholder="0" style="flex: 1;">
-                                    <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('dc-total')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                    <input type="number" id="dc-total" min="0" required placeholder="0"
+                                        style="flex: 1;">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="app.toggleCalculator('dc-total')" style="padding: 0 14px;"
+                                        title="เปิดเครื่องคิดเลข">🧮</button>
                                 </div>
                             </div>
                             <div class="col">
@@ -312,8 +350,11 @@
                             <div class="col">
                                 <label for="ti-amount">ยอดรับ (บาท)</label>
                                 <div style="display: flex; gap: 8px;">
-                                    <input type="number" id="ti-amount" min="1" required placeholder="0" style="flex: 1;">
-                                    <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('ti-amount')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                    <input type="number" id="ti-amount" min="1" required placeholder="0"
+                                        style="flex: 1;">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="app.toggleCalculator('ti-amount')" style="padding: 0 14px;"
+                                        title="เปิดเครื่องคิดเลข">🧮</button>
                                 </div>
                             </div>
                             <div class="col">
@@ -370,8 +411,11 @@
                             <div class="col">
                                 <label for="te-amount">ยอดรายจ่าย (บาท)</label>
                                 <div style="display: flex; gap: 8px;">
-                                    <input type="number" id="te-amount" min="1" required placeholder="0" style="flex: 1;">
-                                    <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('te-amount')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                    <input type="number" id="te-amount" min="1" required placeholder="0"
+                                        style="flex: 1;">
+                                    <button type="button" class="btn btn-secondary"
+                                        onclick="app.toggleCalculator('te-amount')" style="padding: 0 14px;"
+                                        title="เปิดเครื่องคิดเลข">🧮</button>
                                 </div>
                             </div>
                             <div class="col">
@@ -463,8 +507,11 @@
                                 <div class="col">
                                     <label for="ms-total">ราคารวม (บาท)</label>
                                     <div style="display: flex; gap: 8px;">
-                                        <input type="number" id="ms-total" min="1" required placeholder="0" style="flex: 1;">
-                                        <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('ms-total')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                        <input type="number" id="ms-total" min="1" required placeholder="0"
+                                            style="flex: 1;">
+                                        <button type="button" class="btn btn-secondary"
+                                            onclick="app.toggleCalculator('ms-total')" style="padding: 0 14px;"
+                                            title="เปิดเครื่องคิดเลข">🧮</button>
                                     </div>
                                 </div>
                             </div>
@@ -523,8 +570,11 @@
                                 <div class="col">
                                     <label for="mb-total">ยอดเงิน (บาท)</label>
                                     <div style="display: flex; gap: 8px;">
-                                        <input type="number" id="mb-total" min="1" required placeholder="0" style="flex: 1;">
-                                        <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('mb-total')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                                        <input type="number" id="mb-total" min="1" required placeholder="0"
+                                            style="flex: 1;">
+                                        <button type="button" class="btn btn-secondary"
+                                            onclick="app.toggleCalculator('mb-total')" style="padding: 0 14px;"
+                                            title="เปิดเครื่องคิดเลข">🧮</button>
                                     </div>
                                 </div>
                             </div>
@@ -668,7 +718,9 @@
                     <label>ค่างวดคงที่ (บาท/เดือน)</label>
                     <div style="display: flex; gap: 8px;">
                         <input type="number" id="inst-fixed-amount" min="0" placeholder="0" style="flex: 1;">
-                        <button type="button" class="btn btn-secondary" onclick="app.toggleCalculator('inst-fixed-amount')" style="padding: 0 14px;" title="เปิดเครื่องคิดเลข">🧮</button>
+                        <button type="button" class="btn btn-secondary"
+                            onclick="app.toggleCalculator('inst-fixed-amount')" style="padding: 0 14px;"
+                            title="เปิดเครื่องคิดเลข">🧮</button>
                     </div>
                 </div>
             </div>
@@ -695,44 +747,57 @@
         style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2500; align-items: center; justify-content: center;">
         <div class="modal-content calculator-container"
             style="background: #1e1e1e; padding: 24px; border-radius: 16px; width: 90%; max-width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-family: 'Inter', sans-serif;">
-            
+
             <!-- Calculator Display -->
-            <div style="background: #2d2d2d; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: right;">
-                <div id="calc-history" style="color: #888; font-size: 14px; min-height: 20px; word-wrap: break-word;"></div>
-                <div id="calc-display" class="hide-scrollbar" style="color: white; font-size: 36px; font-weight: 500; overflow-x: auto; white-space: nowrap;">0</div>
+            <div
+                style="background: #2d2d2d; padding: 15px; border-radius: 10px; margin-bottom: 20px; text-align: right;">
+                <div id="calc-history" style="color: #888; font-size: 14px; min-height: 20px; word-wrap: break-word;">
+                </div>
+                <div id="calc-display" class="hide-scrollbar"
+                    style="color: white; font-size: 36px; font-weight: 500; overflow-x: auto; white-space: nowrap;">0
+                </div>
             </div>
 
             <!-- Calculator Buttons -->
             <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
-                <button class="calc-btn calc-action" onclick="app.calcInput('AC')" style="grid-column: span 2; background: #ff4757; color: white;">AC</button>
-                <button class="calc-btn calc-action" onclick="app.calcInput('DEL')" style="background: #eccc68; color: #2f3542;">DEL</button>
-                <button class="calc-btn calc-op" onclick="app.calcInput('÷')" style="background: #ff7f50; color: white;">÷</button>
+                <button class="calc-btn calc-action" onclick="app.calcInput('AC')"
+                    style="grid-column: span 2; background: #ff4757; color: white;">AC</button>
+                <button class="calc-btn calc-action" onclick="app.calcInput('DEL')"
+                    style="background: #eccc68; color: #2f3542;">DEL</button>
+                <button class="calc-btn calc-op" onclick="app.calcInput('÷')"
+                    style="background: #ff7f50; color: white;">÷</button>
 
                 <button class="calc-btn" onclick="app.calcInput('7')">7</button>
                 <button class="calc-btn" onclick="app.calcInput('8')">8</button>
                 <button class="calc-btn" onclick="app.calcInput('9')">9</button>
-                <button class="calc-btn calc-op" onclick="app.calcInput('×')" style="background: #ff7f50; color: white;">×</button>
+                <button class="calc-btn calc-op" onclick="app.calcInput('×')"
+                    style="background: #ff7f50; color: white;">×</button>
 
                 <button class="calc-btn" onclick="app.calcInput('4')">4</button>
                 <button class="calc-btn" onclick="app.calcInput('5')">5</button>
                 <button class="calc-btn" onclick="app.calcInput('6')">6</button>
-                <button class="calc-btn calc-op" onclick="app.calcInput('-')" style="background: #ff7f50; color: white;">−</button>
+                <button class="calc-btn calc-op" onclick="app.calcInput('-')"
+                    style="background: #ff7f50; color: white;">−</button>
 
                 <button class="calc-btn" onclick="app.calcInput('1')">1</button>
                 <button class="calc-btn" onclick="app.calcInput('2')">2</button>
                 <button class="calc-btn" onclick="app.calcInput('3')">3</button>
-                <button class="calc-btn calc-op" onclick="app.calcInput('+')" style="background: #ff7f50; color: white;">+</button>
+                <button class="calc-btn calc-op" onclick="app.calcInput('+')"
+                    style="background: #ff7f50; color: white;">+</button>
 
                 <button class="calc-btn" onclick="app.calcInput('0')" style="grid-column: span 2;">0</button>
                 <button class="calc-btn" onclick="app.calcInput('.')">.</button>
-                <button class="calc-btn calc-eq" onclick="app.calcInput('=')" style="background: #2ed573; color: white;">=</button>
+                <button class="calc-btn calc-eq" onclick="app.calcInput('=')"
+                    style="background: #2ed573; color: white;">=</button>
             </div>
 
             <!-- Use result button -->
-            <button id="calc-use-btn" class="btn btn-primary" onclick="app.calcUseResult()" style="width: 100%; margin-top: 20px; display: none;">
+            <button id="calc-use-btn" class="btn btn-primary" onclick="app.calcUseResult()"
+                style="width: 100%; margin-top: 20px; display: none;">
                 นำค่านำไปใช้ (Use Result)
             </button>
-            <button class="btn btn-secondary" onclick="app.toggleCalculator()" style="width: 100%; margin-top: 10px; background: transparent; color: #888; border: none;">
+            <button class="btn btn-secondary" onclick="app.toggleCalculator()"
+                style="width: 100%; margin-top: 10px; background: transparent; color: #888; border: none;">
                 ปิดเครื่องคิดเลข
             </button>
         </div>

@@ -499,6 +499,7 @@ const app = {
 
     refreshAll() {
         this.renderDashboard();
+        this.renderDailyReport();
 
         this.renderIncomeCategories();
         this.renderExpenseCategories();
@@ -526,6 +527,54 @@ const app = {
         if (elBalance) elBalance.textContent = UI.formatCurrency(stats.balance);
         if (elUnpaidDebt) elUnpaidDebt.textContent = UI.formatCurrency(stats.unpaidDebtAmount);
         if (elDebtRemaining) elDebtRemaining.textContent = UI.formatCurrency(stats.debtRemaining);
+    },
+
+    renderDailyReport() {
+        const today = UI.getTodayISO();
+        
+        // Fetch all expenses and their categories
+        const expenses = Store.getAll(Store.keys.EXPENSES);
+        const categories = Store.getAll(Store.keys.EXPENSE_CAT);
+        
+        // Filter to only today's expenses
+        const todaysExpenses = expenses.filter(e => e.date === today);
+        
+        // Calculate total
+        const todayTotal = todaysExpenses.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+        
+        // Update total UI
+        const elTodayTotal = document.getElementById('dash-today-expense');
+        if (elTodayTotal) elTodayTotal.textContent = UI.formatCurrency(todayTotal);
+        
+        // Render table
+        const tbody = document.querySelector('#table-dash-daily tbody');
+        const emptyState = document.getElementById('dash-daily-empty');
+        const table = document.getElementById('table-dash-daily');
+        
+        if (!tbody || !emptyState || !table) return;
+        
+        tbody.innerHTML = '';
+        
+        if (todaysExpenses.length === 0) {
+            table.style.display = 'none';
+            emptyState.style.display = 'block';
+        } else {
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+            
+            todaysExpenses.forEach(item => {
+                const cat = categories.find(c => c.id === item.categoryId);
+                const catName = cat ? cat.name : '<span style="color:red">ไม่ระบุ</span>';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${catName}</td>
+                    <td>${item.note || '-'}</td>
+                    <td style="text-align: right; font-weight: 500;">${UI.formatCurrency(item.amount)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
     },
 
     renderIncomeCategories() {
@@ -1411,6 +1460,58 @@ const app = {
 
         a.href = url;
         a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+
+    exportForAI() {
+        const expenses = Store.getAll(Store.keys.EXPENSES);
+        const categories = Store.getAll(Store.keys.EXPENSE_CAT);
+        
+        // Format the data into a clear structure for AI
+        const formattedData = expenses.map(expense => {
+            const cat = categories.find(c => c.id === expense.categoryId);
+            return {
+                Date: expense.date,
+                Category: cat ? cat.name : 'Unknown',
+                Amount: expense.amount,
+                Note: expense.note || ''
+            };
+        });
+
+        // Group by category for a quick summary in the prompt
+        const summaryByCategory = {};
+        formattedData.forEach(item => {
+            if (!summaryByCategory[item.Category]) {
+                summaryByCategory[item.Category] = 0;
+            }
+            summaryByCategory[item.Category] += item.Amount;
+        });
+
+        // Construct the final object
+        const exportContent = {
+            metadata: {
+                description: "ไฟล์นี้บรรจุประวัติการใช้จ่ายของผู้ใช้ โปรดวิเคราะห์พฤติกรรมการใช้จ่ายและให้คำแนะนำทางการเงินเป็นภาษาไทย (Please analyze the spending habits and provide financial advice in Thai language).",
+                generatedAt: new Date().toISOString()
+            },
+            summary: summaryByCategory,
+            transactions: formattedData
+        };
+
+        const json = JSON.stringify(exportContent, null, 2);
+        const blob = new Blob([json], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        const now = new Date();
+        const dateStr = now.getFullYear() + '-' + 
+            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+            String(now.getDate()).padStart(2, '0');
+
+        a.href = url;
+        a.download = `finance_ai_export_${dateStr}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
