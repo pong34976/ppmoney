@@ -9,6 +9,10 @@ const app = {
         newNum: true,
         targetInputId: null
     },
+    uiState: {
+        incomeView: 'today',
+        expenseView: 'today'
+    },
 
     init() {
         this.setupNavigation();
@@ -208,7 +212,7 @@ const app = {
                 name: document.getElementById('dc-name').value,
                 totalAmount: parseFloat(document.getElementById('dc-total').value) || 0,
                 termMonths: parseInt(document.getElementById('dc-term').value) || 1,
-                dueDate: document.getElementById('dc-due').value || '',
+                dueDate: document.getElementById('dc-due').value ? parseInt(document.getElementById('dc-due').value) : '',
                 loanDate: document.getElementById('dc-loan-date').value || '',
                 monthly: document.getElementById('dc-monthly').checked
             };
@@ -239,8 +243,11 @@ const app = {
         document.getElementById('form-trans-income').addEventListener('submit', e => {
             e.preventDefault();
             const id = document.getElementById('ti-id').value;
+            const now = new Date();
+            const autoTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
             const data = {
                 date: document.getElementById('ti-date').value,
+                time: document.getElementById('ti-time').value || autoTime,
                 categoryId: document.getElementById('ti-category').value,
                 amount: parseFloat(document.getElementById('ti-amount').value) || 0,
                 note: document.getElementById('ti-note').value
@@ -258,8 +265,11 @@ const app = {
         document.getElementById('form-trans-expense').addEventListener('submit', e => {
             e.preventDefault();
             const id = document.getElementById('te-id').value;
+            const now = new Date();
+            const autoTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
             const data = {
                 date: document.getElementById('te-date').value,
+                time: document.getElementById('te-time').value || autoTime,
                 categoryId: document.getElementById('te-category').value,
                 amount: parseFloat(document.getElementById('te-amount').value) || 0,
                 note: document.getElementById('te-note').value
@@ -388,6 +398,22 @@ const app = {
             const useBtn = document.getElementById('calc-use-btn');
             if (useBtn) {
                 useBtn.style.display = targetInputId ? 'block' : 'none';
+            }
+
+            // Reset and load value from input if it exists
+            this.calcInput('AC'); // Clear first
+            this.calcUpdateUI();
+
+            if (targetInputId) {
+                const targetEl = document.getElementById(targetInputId);
+                if (targetEl && targetEl.value) {
+                    const val = parseFloat(targetEl.value);
+                    if (!isNaN(val)) {
+                        this.calcState.display = val.toString();
+                        this.calcState.newNum = false;
+                        this.calcUpdateUI();
+                    }
+                }
             }
         } else {
             modal.style.display = 'none';
@@ -772,71 +798,173 @@ const app = {
         );
     },
 
+    setIncomeView(view) {
+        this.uiState.incomeView = view;
+        // update buttons active state visually
+        document.getElementById('btn-income-today').className = view === 'today' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        document.getElementById('btn-income-all').className = view === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        this.renderIncomeTransactions();
+    },
+
+    setExpenseView(view) {
+        this.uiState.expenseView = view;
+        // update buttons active state visually
+        document.getElementById('btn-expense-today').className = view === 'today' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        document.getElementById('btn-expense-all').className = view === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        this.renderExpenseTransactions();
+    },
+
     renderIncomeTransactions() {
-        const data = Store.getAll(Store.keys.INCOMES).sort((a, b) => new Date(b.date) - new Date(a.date));
+        let data = Store.getAll(Store.keys.INCOMES);
         const categories = Store.getAll(Store.keys.INCOME_CAT);
+        
+        data.sort((a, b) => {
+            const timeA = a.time || '01:00';
+            const timeB = b.time || '01:00';
+            const dateA = new Date(`${a.date}T${timeA}`);
+            const dateB = new Date(`${b.date}T${timeB}`);
+            return dateB - dateA; // latest first
+        });
 
-        UI.renderTable('table-trans-income', data, [
-            { key: 'date', type: 'date' },
-            { key: 'categoryId' },
-            {
-                key: 'categoryName',
-                render: (_, item) => {
-                    const cat = categories.find(c => c.id === item.categoryId);
-                    return cat ? cat.name : '<span style="color:red">ไม่พบหมวดหมู่</span>';
-                }
-            },
-            { key: 'amount', type: 'currency' },
-            { key: 'note', render: (val) => val || '-' }
-        ], {
-            onEdit: (item) => {
-                document.getElementById('ti-id').value = item.id;
-                document.getElementById('ti-date').value = item.date;
-                document.getElementById('ti-category').value = item.categoryId;
-                document.getElementById('ti-amount').value = item.amount;
-                document.getElementById('ti-note').value = item.note || '';
+        if (this.uiState.incomeView === 'today') {
+            const today = UI.getTodayISO();
+            data = data.filter(d => d.date === today);
+        }
 
-                document.querySelector('[data-target="transaction-income"]').click();
-                window.scrollTo(0, 0);
-            },
-            onDelete: (id) => {
-                Store.delete(Store.keys.INCOMES, id);
-                this.refreshAll();
+        const tbody = document.querySelector('#table-trans-income tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #6b7280;">ไม่มีข้อมูลรายรับสำหรับมุมมองนี้</td></tr>`;
+            return;
+        }
+
+        let lastDateRendered = null;
+
+        data.forEach(item => {
+            if (this.uiState.incomeView === 'all' && item.date !== lastDateRendered) {
+                const groupTr = document.createElement('tr');
+                groupTr.innerHTML = `<td colspan="6" style="background-color: #f3f4f6; font-weight: bold; color: #374151;">📅 ${UI.formatDate(item.date)}</td>`;
+                tbody.appendChild(groupTr);
+                lastDateRendered = item.date;
             }
+
+            const tr = document.createElement('tr');
+            const cat = categories.find(c => c.id === item.categoryId);
+            const catName = cat ? cat.name : '<span style="color:red">ไม่พบหมวดหมู่</span>';
+            const displayTime = item.time || '01:00';
+            const dateTimeDisplay = displayTime;
+
+            tr.innerHTML = `
+                <td>${dateTimeDisplay}</td>
+                <td>${item.categoryId}</td>
+                <td>${catName}</td>
+                <td style="font-weight: 500;">${UI.formatCurrency(item.amount)}</td>
+                <td>${item.note || '-'}</td>
+                <td class="actions-cell">
+                    <button class="btn btn-small btn-edit" onclick="app.editIncome('${item.id}')">แก้ไข</button>
+                    <button class="btn btn-small btn-danger" onclick="app.deleteIncome('${item.id}')">ลบ</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    },
+
+    editIncome(id) {
+        const item = Store.getById(Store.keys.INCOMES, id);
+        if(!item) return;
+        document.getElementById('ti-id').value = item.id;
+        document.getElementById('ti-date').value = item.date;
+        document.getElementById('ti-time').value = item.time || '';
+        document.getElementById('ti-category').value = item.categoryId;
+        document.getElementById('ti-amount').value = item.amount;
+        document.getElementById('ti-note').value = item.note || '';
+        document.querySelector('[data-target="transaction-income"]').click();
+        window.scrollTo(0, 0);
+    },
+
+    deleteIncome(id) {
+        UI.showConfirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายรับนี้?', () => {
+             Store.delete(Store.keys.INCOMES, id);
+             this.refreshAll();
         });
     },
 
     renderExpenseTransactions() {
-        const data = Store.getAll(Store.keys.EXPENSES).sort((a, b) => new Date(b.date) - new Date(a.date));
+        let data = Store.getAll(Store.keys.EXPENSES);
         const categories = Store.getAll(Store.keys.EXPENSE_CAT);
+        
+        data.sort((a, b) => {
+            const timeA = a.time || '01:00';
+            const timeB = b.time || '01:00';
+            const dateA = new Date(`${a.date}T${timeA}`);
+            const dateB = new Date(`${b.date}T${timeB}`);
+            return dateB - dateA; // latest first
+        });
 
-        UI.renderTable('table-trans-expense', data, [
-            { key: 'date', type: 'date' },
-            { key: 'categoryId' },
-            {
-                key: 'categoryName',
-                render: (_, item) => {
-                    const cat = categories.find(c => c.id === item.categoryId);
-                    return cat ? cat.name : '<span style="color:red">ไม่พบหมวดหมู่</span>';
-                }
-            },
-            { key: 'amount', type: 'currency' },
-            { key: 'note', render: (val) => val || '-' }
-        ], {
-            onEdit: (item) => {
-                document.getElementById('te-id').value = item.id;
-                document.getElementById('te-date').value = item.date;
-                document.getElementById('te-category').value = item.categoryId;
-                document.getElementById('te-amount').value = item.amount;
-                document.getElementById('te-note').value = item.note || '';
+        if (this.uiState.expenseView === 'today') {
+            const today = UI.getTodayISO();
+            data = data.filter(d => d.date === today);
+        }
 
-                document.querySelector('[data-target="transaction-expense"]').click();
-                window.scrollTo(0, 0);
-            },
-            onDelete: (id) => {
-                Store.delete(Store.keys.EXPENSES, id);
-                this.refreshAll();
+        const tbody = document.querySelector('#table-trans-expense tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: #6b7280;">ไม่มีข้อมูลรายจ่ายสำหรับมุมมองนี้</td></tr>`;
+            return;
+        }
+
+        let lastDateRendered = null;
+
+        data.forEach(item => {
+            if (this.uiState.expenseView === 'all' && item.date !== lastDateRendered) {
+                const groupTr = document.createElement('tr');
+                groupTr.innerHTML = `<td colspan="6" style="background-color: #fee2e2; font-weight: bold; color: #991b1b;">📅 ${UI.formatDate(item.date)}</td>`;
+                tbody.appendChild(groupTr);
+                lastDateRendered = item.date;
             }
+
+            const tr = document.createElement('tr');
+            const cat = categories.find(c => c.id === item.categoryId);
+            const catName = cat ? cat.name : '<span style="color:red">ไม่พบหมวดหมู่</span>';
+            const displayTime = item.time || '01:00';
+            const dateTimeDisplay = displayTime;
+
+            tr.innerHTML = `
+                <td>${dateTimeDisplay}</td>
+                <td>${item.categoryId}</td>
+                <td>${catName}</td>
+                <td style="font-weight: 500;">${UI.formatCurrency(item.amount)}</td>
+                <td>${item.note || '-'}</td>
+                <td class="actions-cell">
+                    <button class="btn btn-small btn-edit" onclick="app.editExpense('${item.id}')">แก้ไข</button>
+                    <button class="btn btn-small btn-danger" onclick="app.deleteExpense('${item.id}')">ลบ</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    },
+
+    editExpense(id) {
+        const item = Store.getById(Store.keys.EXPENSES, id);
+        if(!item) return;
+        document.getElementById('te-id').value = item.id;
+        document.getElementById('te-date').value = item.date;
+        document.getElementById('te-time').value = item.time || '';
+        document.getElementById('te-category').value = item.categoryId;
+        document.getElementById('te-amount').value = item.amount;
+        document.getElementById('te-note').value = item.note || '';
+        document.querySelector('[data-target="transaction-expense"]').click();
+        window.scrollTo(0, 0);
+    },
+
+    deleteExpense(id) {
+        UI.showConfirm('คุณแน่ใจหรือไม่ว่าต้องการลบรายจ่ายนี้?', () => {
+             Store.delete(Store.keys.EXPENSES, id);
+             this.refreshAll();
         });
     },
 

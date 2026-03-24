@@ -32,6 +32,11 @@ body {
     line-height: 1.6;
 }
 
+/* Prevent double-tap to zoom on interactive elements */
+button, input, select, a {
+    touch-action: manipulation;
+}
+
 /* ============================================
    MOBILE HEADER
    ============================================ */

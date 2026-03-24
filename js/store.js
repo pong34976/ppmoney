@@ -96,72 +96,109 @@ const Store = {
         const bills = this.getAll(this.keys.DEBT_PAYMENTS);
 
         const now = new Date();
+        // Reset time to start of day for accurate day-only comparison
+        now.setHours(0, 0, 0, 0);
+
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
 
         let newBillsCount = 0;
 
-        // 1. Process Debts
-        debts.forEach(debt => {
-            const alreadyExists = bills.some(b => {
-                if (b.debtId !== debt.id) return false;
-                const [bYear, bMonth] = b.date.split('-');
-                return parseInt(bMonth, 10) - 1 === currentMonth && parseInt(bYear, 10) === currentYear;
-            });
+        // Helper function to process generation for a specific target month
+        const processForMonth = (tMonthOffset) => {
+            const targetDate = new Date(currentYear, currentMonth + tMonthOffset, 1);
+            const tYear = targetDate.getFullYear();
+            const tMonth = targetDate.getMonth();
 
-            let loanHasStarted = true;
-            if (debt.loanDate) {
-                const [lYear, lMonth] = debt.loanDate.split('-').map(s => parseInt(s, 10));
-                if (lYear > currentYear) loanHasStarted = false;
-                else if (lYear === currentYear && (lMonth - 1) > currentMonth) loanHasStarted = false;
-            }
+            // 1. Process Debts
+            debts.forEach(debt => {
+                const dueDateNum = parseInt(debt.dueDate) || 1;
+                // Bill generation allows 10 days in advance
+                const generationDate = new Date(tYear, tMonth, dueDateNum - 10);
+                
+                if (now < generationDate) return; // Too early to generate this bill
 
-            if (!alreadyExists && loanHasStarted) {
-                const monthStr = String(currentMonth + 1).padStart(2, '0');
-                const billDateStr = `${currentYear}-${monthStr}-01`;
-                const existingDebtBills = bills.filter(b => b.debtId === debt.id);
-                const billIndex = existingDebtBills.length;
+                const alreadyExists = bills.some(b => {
+                    if (b.debtId !== debt.id) return false;
+                    const [bYear, bMonth] = b.date.split('-');
+                    return parseInt(bMonth, 10) - 1 === tMonth && parseInt(bYear, 10) === tYear;
+                });
 
-                if (debt.termMonths && billIndex >= debt.termMonths) return;
-
-                let paymentAmount = 0;
-                if (debt.paymentType === 'custom' && debt.customPayments && debt.customPayments.length > billIndex) {
-                    paymentAmount = debt.customPayments[billIndex];
-                } else {
-                    paymentAmount = debt.fixedPaymentAmount || (debt.termMonths > 0 ? (debt.totalAmount / debt.termMonths) : debt.totalAmount);
+                let loanHasStarted = true;
+                if (debt.loanDate) {
+                    const [lYear, lMonth] = debt.loanDate.split('-').map(s => parseInt(s, 10));
+                    if (lYear > tYear) loanHasStarted = false;
+                    else if (lYear === tYear && (lMonth - 1) > tMonth) loanHasStarted = false;
                 }
 
-                this.add(this.keys.DEBT_PAYMENTS, {
-                    date: billDateStr,
-                    debtId: debt.id,
-                    amount: paymentAmount,
-                    isPaid: false
-                });
-                newBillsCount++;
-            }
-        });
+                if (!alreadyExists && loanHasStarted) {
+                    const monthStr = String(tMonth + 1).padStart(2, '0');
+                    const dayStr = String(dueDateNum).padStart(2, '0');
+                    const billDateStr = `${tYear}-${monthStr}-${dayStr}`;
+                    const existingDebtBills = bills.filter(b => b.debtId === debt.id);
+                    const billIndex = existingDebtBills.length;
 
-        // 2. Process Monthly Expenses
-        expenseCats.forEach(cat => {
-            const alreadyExists = bills.some(b => {
-                if (b.categoryId !== cat.id) return false;
-                const [bYear, bMonth] = b.date.split('-');
-                return parseInt(bMonth, 10) - 1 === currentMonth && parseInt(bYear, 10) === currentYear;
+                    if (debt.termMonths && billIndex >= debt.termMonths) return;
+
+                    let paymentAmount = 0;
+                    if (debt.paymentType === 'custom' && debt.customPayments && debt.customPayments.length > billIndex) {
+                        paymentAmount = debt.customPayments[billIndex];
+                    } else {
+                        paymentAmount = debt.fixedPaymentAmount || (debt.termMonths > 0 ? (debt.totalAmount / debt.termMonths) : debt.totalAmount);
+                    }
+
+                    this.add(this.keys.DEBT_PAYMENTS, {
+                        date: billDateStr,
+                        debtId: debt.id,
+                        amount: paymentAmount,
+                        isPaid: false
+                    });
+                    bills.push({ // Update local bills array for subsequent checks
+                        date: billDateStr,
+                        debtId: debt.id,
+                        amount: paymentAmount,
+                        isPaid: false
+                    });
+                    newBillsCount++;
+                }
             });
 
-            if (!alreadyExists) {
-                const monthStr = String(currentMonth + 1).padStart(2, '0');
-                const billDateStr = `${currentYear}-${monthStr}-01`;
+            // 2. Process Monthly Expenses
+            expenseCats.forEach(cat => {
+                // For expenses without a due date, generate at the start of the month (or 10 days before the 1st = ~21st of prev month)
+                const generationDate = new Date(tYear, tMonth, 1 - 10);
+                if (now < generationDate) return;
 
-                this.add(this.keys.DEBT_PAYMENTS, {
-                    date: billDateStr,
-                    categoryId: cat.id,
-                    amount: parseFloat(cat.amount) || 0,
-                    isPaid: false
+                const alreadyExists = bills.some(b => {
+                    if (b.categoryId !== cat.id) return false;
+                    const [bYear, bMonth] = b.date.split('-');
+                    return parseInt(bMonth, 10) - 1 === tMonth && parseInt(bYear, 10) === tYear;
                 });
-                newBillsCount++;
-            }
-        });
+
+                if (!alreadyExists) {
+                    const monthStr = String(tMonth + 1).padStart(2, '0');
+                    const billDateStr = `${tYear}-${monthStr}-01`;
+
+                    this.add(this.keys.DEBT_PAYMENTS, {
+                        date: billDateStr,
+                        categoryId: cat.id,
+                        amount: parseFloat(cat.amount) || 0,
+                        isPaid: false
+                    });
+                    bills.push({ // Update local bills array
+                        date: billDateStr,
+                        categoryId: cat.id,
+                        amount: parseFloat(cat.amount) || 0,
+                        isPaid: false
+                    });
+                    newBillsCount++;
+                }
+            });
+        };
+
+        // Check for current month and next month (in case we are 10 days near the end of the month)
+        processForMonth(0);
+        processForMonth(1);
 
         return newBillsCount;
     },

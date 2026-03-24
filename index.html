@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PP Money</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap"
@@ -17,7 +17,7 @@
         <button class="hamburger-btn" id="hamburger-btn" aria-label="เมนู">
             <span></span><span></span><span></span>
         </button>
-        <div class="mobile-logo">PP<span>Money</span></div>
+        <div class="mobile-logo">PP<span>Money</span> <small style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.2</small></div>
     </header>
 
     <!-- Sidebar Overlay (mobile) -->
@@ -27,7 +27,7 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="logo">
-                <h2>PP<span>Money</span></h2>
+                <h2>PP<span>Money</span> <small style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.2</small></h2>
             </div>
             <nav class="nav-menu">
                 <button class="nav-item active" data-target="dashboard">
@@ -287,8 +287,8 @@
                         </div>
                         <div class="form-group row">
                             <div class="col">
-                                <label for="dc-due">🗓 วันกำหนดชำระ</label>
-                                <input type="text" id="dc-due" placeholder="เช่น วันที่ 5 ของทุกเดือน">
+                                <label for="dc-due">🗓 วันกำหนดชำระ (วันที่ 1-31)</label>
+                                <input type="number" id="dc-due" min="1" max="31" placeholder="เช่น 5 (หมายถึงวันที่ 5 ของเดือน)">
                             </div>
                             <div class="col">
                                 <label for="dc-loan-date">📆 วันที่เริ่มกู้ยืม / เริ่มผ่อน</label>
@@ -334,6 +334,7 @@
                 <div class="content-panel">
                     <form id="form-trans-income" class="data-form">
                         <input type="hidden" id="ti-id">
+                        <input type="hidden" id="ti-time">
                         <div class="form-group row">
                             <div class="col">
                                 <label for="ti-date">วันที่</label>
@@ -369,11 +370,15 @@
                         </div>
                     </form>
 
+                    <div style="display:flex; justify-content:flex-end; margin-bottom: 12px; gap: 8px;">
+                        <button id="btn-income-today" class="btn btn-primary btn-sm" onclick="app.setIncomeView('today')">แสดงรายรับวันนี้</button>
+                        <button id="btn-income-all" class="btn btn-secondary btn-sm" onclick="app.setIncomeView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
+                    </div>
                     <div class="table-container">
                         <table id="table-trans-income" class="data-table">
                             <thead>
                                 <tr>
-                                    <th>วันที่</th>
+                                    <th>วันเวลา</th>
                                     <th>ID ประเภทรายรับ</th>
                                     <th>ชื่อรายรับ</th>
                                     <th>ยอด</th>
@@ -395,6 +400,7 @@
                 <div class="content-panel">
                     <form id="form-trans-expense" class="data-form">
                         <input type="hidden" id="te-id">
+                        <input type="hidden" id="te-time">
                         <div class="form-group row">
                             <div class="col">
                                 <label for="te-date">วันที่</label>
@@ -430,11 +436,15 @@
                         </div>
                     </form>
 
+                    <div style="display:flex; justify-content:flex-end; margin-bottom: 12px; gap: 8px;">
+                        <button id="btn-expense-today" class="btn btn-primary btn-sm" onclick="app.setExpenseView('today')">แสดงรายจ่ายวันนี้</button>
+                        <button id="btn-expense-all" class="btn btn-secondary btn-sm" onclick="app.setExpenseView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
+                    </div>
                     <div class="table-container">
                         <table id="table-trans-expense" class="data-table">
                             <thead>
                                 <tr>
-                                    <th>วันที่</th>
+                                    <th>วันเวลา</th>
                                     <th>ID ประเภทรายจ่าย</th>
                                     <th>ชื่อรายจ่าย</th>
                                     <th>ยอด</th>
