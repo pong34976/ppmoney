@@ -672,11 +672,11 @@ const app = {
                 <td>${item.loanDate || '-'}</td>
                 <td>${item.monthly ? '✔' : '❌'}</td>
                 <td style="min-width: 150px;">
-                    <button class="btn btn-secondary btn-sm" onclick="app.openInstallmentModal('${item.id}')" title="จัดการค่างวด">
+                    <button class="btn btn-action btn-sm" onclick="app.openInstallmentModal('${item.id}')" title="จัดการค่างวด">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         ค่างวด
                     </button>
-                    <button class="btn btn-primary btn-sm" onclick="app.editDebtCategory('${item.id}')" title="แก้ไข">แก้ไข</button>
+                    <button class="btn btn-edit btn-sm" onclick="app.editDebtCategory('${item.id}')" title="แก้ไข">✏️ แก้ไข</button>
                     <button class="btn btn-danger btn-sm" onclick="app.deleteDebtCategory('${item.id}')" title="ลบหนี้สินนี้ทั้งหมด!">❌ ลบหนี้สิน</button>
                 </td>
             `;
@@ -801,16 +801,16 @@ const app = {
     setIncomeView(view) {
         this.uiState.incomeView = view;
         // update buttons active state visually
-        document.getElementById('btn-income-today').className = view === 'today' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-        document.getElementById('btn-income-all').className = view === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        document.getElementById('btn-income-today').className = view === 'today' ? 'btn btn-tab-active btn-sm' : 'btn btn-tab-default btn-sm';
+        document.getElementById('btn-income-all').className = view === 'all' ? 'btn btn-tab-active btn-sm' : 'btn btn-tab-default btn-sm';
         this.renderIncomeTransactions();
     },
 
     setExpenseView(view) {
         this.uiState.expenseView = view;
         // update buttons active state visually
-        document.getElementById('btn-expense-today').className = view === 'today' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
-        document.getElementById('btn-expense-all').className = view === 'all' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+        document.getElementById('btn-expense-today').className = view === 'today' ? 'btn btn-tab-active btn-sm' : 'btn btn-tab-default btn-sm';
+        document.getElementById('btn-expense-all').className = view === 'all' ? 'btn btn-tab-active btn-sm' : 'btn btn-tab-default btn-sm';
         this.renderExpenseTransactions();
     },
 
@@ -1123,8 +1123,8 @@ const app = {
         const isLend = tab === 'lend';
         document.getElementById('meal-lend-section').style.display = isLend ? 'block' : 'none';
         document.getElementById('meal-borrow-section').style.display = isLend ? 'none' : 'block';
-        document.getElementById('meal-main-tab-lend').className = isLend ? 'btn btn-primary' : 'btn btn-secondary';
-        document.getElementById('meal-main-tab-borrow').className = isLend ? 'btn btn-secondary' : 'btn btn-primary';
+        document.getElementById('meal-main-tab-lend').className = isLend ? 'btn btn-tab-active' : 'btn btn-tab-default';
+        document.getElementById('meal-main-tab-borrow').className = isLend ? 'btn btn-tab-default' : 'btn btn-tab-active';
     },
 
     // ============ MEAL SPLIT FUNCTIONS ============
@@ -1228,8 +1228,8 @@ const app = {
         }
 
         // Reset tab buttons
-        document.getElementById('meal-bill-tab-equal').className = 'btn btn-primary btn-small';
-        document.getElementById('meal-bill-tab-custom').className = 'btn btn-secondary btn-small';
+        document.getElementById('meal-bill-tab-equal').className = 'btn btn-tab-active btn-small';
+        document.getElementById('meal-bill-tab-custom').className = 'btn btn-tab-default btn-small';
         document.getElementById('meal-bill-equal-section').style.display = 'block';
         document.getElementById('meal-bill-custom-section').style.display = 'none';
 
@@ -1241,8 +1241,8 @@ const app = {
         const isEqual = tab === 'equal';
         document.getElementById('meal-bill-equal-section').style.display = isEqual ? 'block' : 'none';
         document.getElementById('meal-bill-custom-section').style.display = isEqual ? 'none' : 'block';
-        document.getElementById('meal-bill-tab-equal').className = isEqual ? 'btn btn-primary btn-small' : 'btn btn-secondary btn-small';
-        document.getElementById('meal-bill-tab-custom').className = isEqual ? 'btn btn-secondary btn-small' : 'btn btn-primary btn-small';
+        document.getElementById('meal-bill-tab-equal').className = isEqual ? 'btn btn-tab-active btn-small' : 'btn btn-tab-default btn-small';
+        document.getElementById('meal-bill-tab-custom').className = isEqual ? 'btn btn-tab-default btn-small' : 'btn btn-tab-active btn-small';
     },
 
     closeMealBillModal() {
@@ -1371,13 +1371,11 @@ const app = {
                         : '';
 
                     const btnRefund = member.refunded ? '' :
-                        `<button onclick="app.refundMealMember('${id}', ${idx})"
-                            style="padding:6px 14px; background:#F59E0B; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+                        `<button class="btn btn-primary btn-sm" onclick="app.refundMealMember('${id}', ${idx})" style="white-space:nowrap;">
                             💰 คืนเงิน
                         </button>`;
 
-                    const btnDelete = `<button onclick="app.deleteMealMember('${id}', ${idx})"
-                        style="padding:6px 14px; background:#EF4444; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">
+                    const btnDelete = `<button class="btn btn-danger btn-sm" onclick="app.deleteMealMember('${id}', ${idx})" style="white-space:nowrap;">
                         🗑 ลบ
                     </button>`;
 
@@ -1485,7 +1483,7 @@ const app = {
 
             if (item.isSplit || (item.members && item.members.length > 1)) {
                 const btnView = document.createElement('button');
-                btnView.style.cssText = 'padding:6px 14px; background:#F59E0B; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;';
+                btnView.className = 'btn btn-action btn-sm';
                 btnView.textContent = '🧾 จัดการบิล';
                 btnView.onclick = () => this.openMealViewModal(item.id);
                 tdActions.appendChild(btnView);
@@ -1541,7 +1539,7 @@ const app = {
 
             if (!item.isReturned) {
                 const btnReturn = document.createElement('button');
-                btnReturn.style.cssText = 'padding:6px 14px; background:#F59E0B; color:white; border:none; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer;';
+                btnReturn.className = 'btn btn-primary btn-sm';
                 btnReturn.textContent = '💰 คืนเงินแล้ว';
                 btnReturn.onclick = () => this.returnMealBorrow(item.id);
                 tdActions.appendChild(btnReturn);
@@ -1577,6 +1575,14 @@ const app = {
         // Auto-generate bills for the current month when starting fresh
         Store.generateMonthlyBillsForCurrentMonth();
         this.refreshAll();
+    },
+
+    openDataManagementModal() {
+        document.getElementById('data-management-modal').style.display = 'flex';
+    },
+
+    closeDataManagementModal() {
+        document.getElementById('data-management-modal').style.display = 'none';
     },
 
     exportData() {
@@ -1644,6 +1650,18 @@ const app = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    },
+
+    confirmClearData() {
+        UI.showConfirm(
+            '⚠️ ล้างข้อมูลทั้งหมด\n\nรายการรายรับ รายจ่าย หนี้สิน บิล และข้อมูลทั้งหมดจะถูกลบถาวร!\n\nคุณแน่ใจหรือไม่?',
+            () => {
+                Store.clearAll();
+                this.refreshAll();
+                this.navigateTo('dashboard');
+                alert('✅ ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว');
+            }
+        );
     },
 
     importData(file) {

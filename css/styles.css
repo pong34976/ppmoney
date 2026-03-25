@@ -5,6 +5,8 @@
     --danger: #EF4444;
     --danger-hover: #DC2626;
     --warning: #F59E0B;
+    --info: #2563EB;
+    --info-hover: #1D4ED8;
     --dark: #111827;
     --gray: #6B7280;
     --light: #F3F4F6;
@@ -33,7 +35,10 @@ body {
 }
 
 /* Prevent double-tap to zoom on interactive elements */
-button, input, select, a {
+button,
+input,
+select,
+a {
     touch-action: manipulation;
 }
 
@@ -53,7 +58,7 @@ button, input, select, a {
     align-items: center;
     padding: 0 16px;
     gap: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .mobile-logo {
@@ -102,10 +107,12 @@ button, input, select, a {
 .hamburger-btn.open span:nth-child(1) {
     transform: translateY(7px) rotate(45deg);
 }
+
 .hamburger-btn.open span:nth-child(2) {
     opacity: 0;
     transform: scaleX(0);
 }
+
 .hamburger-btn.open span:nth-child(3) {
     transform: translateY(-7px) rotate(-45deg);
 }
@@ -115,7 +122,7 @@ button, input, select, a {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.45);
+    background: rgba(0, 0, 0, 0.45);
     z-index: 150;
     backdrop-filter: blur(2px);
 }
@@ -233,8 +240,15 @@ button, input, select, a {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .view-header {
@@ -290,10 +304,21 @@ button, input, select, a {
     word-break: break-all;
 }
 
-.income-card .amount { color: var(--primary); }
-.expense-card .amount { color: var(--danger); }
-.balance-card .amount { color: var(--secondary); }
-.debt-card .amount { color: var(--warning); }
+.income-card .amount {
+    color: var(--primary);
+}
+
+.expense-card .amount {
+    color: var(--danger);
+}
+
+.balance-card .amount {
+    color: var(--secondary);
+}
+
+.debt-card .amount {
+    color: var(--warning);
+}
 
 /* ============================================
    FORM PANELS
@@ -393,29 +418,102 @@ select:focus {
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
     font-family: 'Prompt', 'Inter', sans-serif;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
-.btn:active { transform: scale(0.98); }
+.btn:active {
+    transform: scale(0.98);
+}
 
-.btn-primary { background-color: var(--primary); color: white; }
-.btn-primary:hover { background-color: var(--primary-hover); }
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
 
-.btn-secondary { background-color: var(--white); color: var(--dark); border: 1px solid #D1D5DB; }
-.btn-secondary:hover { background-color: var(--light); }
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
 
-.btn-danger { background-color: var(--danger); color: white; }
-.btn-danger:hover { background-color: var(--danger-hover); }
+.btn-secondary {
+    background-color: var(--white);
+    color: var(--dark);
+    border: 1px solid #D1D5DB;
+}
 
-.btn-small, .btn-sm {
+.btn-secondary:hover {
+    background-color: var(--light);
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+    background-color: var(--danger-hover);
+    transform: translateY(-1px);
+}
+
+.btn-small,
+.btn-sm {
     padding: 6px 12px;
     font-size: 13px;
 }
 
-.btn-edit { background-color: var(--warning); color: white; }
-.btn-edit:hover { background-color: #D97706; }
+.btn-edit {
+    background-color: var(--info);
+    color: white;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.btn-edit:hover {
+    background-color: var(--info-hover);
+    transform: translateY(-1px);
+}
+
+.btn-tab-active {
+    background-color: var(--secondary);
+    color: white;
+    border: 1px solid var(--secondary);
+    box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+.btn-tab-active:hover {
+    background-color: #4F46E5;
+}
+
+.btn-tab-default {
+    background-color: var(--white);
+    color: var(--gray);
+    border: 1px solid #D1D5DB;
+}
+
+.btn-tab-default:hover {
+    background-color: var(--light);
+    color: var(--dark);
+    border-color: #9CA3AF;
+}
+
+.btn-action {
+    background-color: #EEF2FF;
+    color: var(--secondary);
+    border: 1px solid #C7D2FE;
+    font-weight: 700;
+}
+
+.btn-action:hover {
+    background-color: #E0E7FF;
+    border-color: #A5B4FC;
+}
 
 /* ============================================
    DATA TABLES
@@ -451,9 +549,17 @@ select:focus {
     top: 0;
 }
 
-.data-table tbody tr { transition: background-color 0.15s; }
-.data-table tbody tr:hover { background-color: rgba(243, 244, 246, 0.4); }
-.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr {
+    transition: background-color 0.15s;
+}
+
+.data-table tbody tr:hover {
+    background-color: rgba(243, 244, 246, 0.4);
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
 
 .actions-cell {
     display: flex;
@@ -473,9 +579,20 @@ select:focus {
     white-space: nowrap;
 }
 
-.badge-success { background: rgba(16, 185, 129, 0.15); color: var(--primary-hover); }
-.badge-warning { background: rgba(245, 158, 11, 0.15); color: #B45309; }
-.badge-danger  { background: rgba(239, 68, 68, 0.15);  color: var(--danger-hover); }
+.badge-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--primary-hover);
+}
+
+.badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #B45309;
+}
+
+.badge-danger {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--danger-hover);
+}
 
 /* ============================================
    MODALS
@@ -483,8 +600,10 @@ select:focus {
 .modal {
     display: none;
     position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
     align-items: center;
@@ -498,6 +617,7 @@ select:focus {
     width: 90%;
     box-shadow: var(--shadow-lg);
 }
+
 
 .modal-actions {
     display: flex;
@@ -527,14 +647,23 @@ select:focus {
     background: #4d4d4d;
 }
 
-.calc-action:active { background: #ff6b81 !important; }
-.calc-op:active { background: #ffa502 !important; }
-.calc-eq:active { background: #7bed9f !important; }
+.calc-action:active {
+    background: #ff6b81 !important;
+}
+
+.calc-op:active {
+    background: #ffa502 !important;
+}
+
+.calc-eq:active {
+    background: #7bed9f !important;
+}
 
 /* hide scrollbar in calc display */
 .hide-scrollbar::-webkit-scrollbar {
     display: none;
 }
+
 .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -543,10 +672,21 @@ select:focus {
 /* ============================================
    SECTION ACCENTS
    ============================================ */
-.section-debt-master .view-header h1 { color: #4338CA; }
-.section-debt-master .content-panel  { border-top: 4px solid #6366F1; }
-.section-debt-bills .view-header h1  { color: #B45309; }
-.section-debt-bills .content-panel   { border-top: 4px solid #F59E0B; }
+.section-debt-master .view-header h1 {
+    color: #4338CA;
+}
+
+.section-debt-master .content-panel {
+    border-top: 4px solid #6366F1;
+}
+
+.section-debt-bills .view-header h1 {
+    color: #B45309;
+}
+
+.section-debt-bills .content-panel {
+    border-top: 4px solid #F59E0B;
+}
 
 /* ============================================
    RESPONSIVE — TABLET (max 1024px)
@@ -555,6 +695,7 @@ select:focus {
     .main-content {
         padding: 28px 24px;
     }
+
     .dashboard-cards {
         grid-template-columns: repeat(2, 1fr);
     }
@@ -575,7 +716,7 @@ select:focus {
         transform: translateX(-100%);
         top: 0;
         height: 100vh;
-        box-shadow: 4px 0 24px rgba(0,0,0,0.15);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
     }
 
     .sidebar.open {
@@ -639,14 +780,15 @@ select:focus {
 
     /* Modal full-width on mobile */
     .modal-content,
-    [id$="-modal"] > div {
+    [id$="-modal"]>div {
+
         width: 95% !important;
         padding: 20px !important;
     }
 
     /* Meal split tab buttons */
-    #meal-lend-section > form,
-    #meal-borrow-section > form {
+    #meal-lend-section>form,
+    #meal-borrow-section>form {
         padding: 16px;
     }
 }

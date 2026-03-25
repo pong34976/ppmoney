@@ -17,7 +17,8 @@
         <button class="hamburger-btn" id="hamburger-btn" aria-label="เมนู">
             <span></span><span></span><span></span>
         </button>
-        <div class="mobile-logo">PP<span>Money</span> <small style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.2</small></div>
+        <div class="mobile-logo">PP<span>Money</span> <small
+                style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.2</small></div>
     </header>
 
     <!-- Sidebar Overlay (mobile) -->
@@ -27,7 +28,8 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar" id="sidebar">
             <div class="logo">
-                <h2>PP<span>Money</span> <small style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.2</small></h2>
+                <h2>PP<span>Money</span> <small
+                        style="font-size: 12px; font-weight: 500; color: #9CA3AF; margin-left: 2px;">v 1.3</small></h2>
             </div>
             <nav class="nav-menu">
                 <button class="nav-item active" data-target="dashboard">
@@ -52,30 +54,21 @@
                 <button class="nav-item" data-target="transaction-expense">
                     <span class="icon">💸</span> บันทึกรายจ่าย
                 </button>
-
                 <div class="nav-section">เครื่องมือ</div>
                 <button class="nav-item" onclick="app.toggleCalculator()">
                     <span class="icon">🧮</span> เครื่องคิดเลข
                 </button>
-
-                <div class="nav-section">การจัดการข้อมูล</div>
                 <button class="nav-item" data-target="transaction-debt">
                     <span class="icon">🧾</span> บิลค้างชำระ (รายเดือน)
                 </button>
                 <button class="nav-item" data-target="meal-split">
                     <span class="icon">🍚</span> ยืมคืน/ออกค่าข้าว
                 </button>
-                <button class="nav-item" onclick="app.exportForAI()">
-                    <span class="icon">🤖</span> ส่งออกให้ AI ประเมิน
+
+                <div class="nav-section">การจัดการข้อมูล</div>
+                <button class="nav-item" onclick="app.openDataManagementModal()">
+                    <span class="icon">⚙️</span> จัดการข้อมูลระบบ
                 </button>
-                <button class="nav-item" onclick="app.exportData()">
-                    <span class="icon">📤</span> สำรองข้อมูล (Export)
-                </button>
-                <button class="nav-item" onclick="document.getElementById('import-file').click()">
-                    <span class="icon">📥</span> นำเข้าข้อมูล (Import)
-                </button>
-                <input type="file" id="import-file" style="display: none;" accept=".json"
-                    onchange="app.importData(this.files[0])">
             </nav>
         </aside>
 
@@ -114,16 +107,19 @@
 
                 <!-- Daily Report Section -->
                 <div class="dashboard-section mt-4" style="margin-top: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                         <h2 style="font-size: 18px; margin: 0; display: flex; align-items: center; gap: 8px;">
                             <span style="font-size: 20px;">📅</span> สรุปรายจ่ายวันนี้
                         </h2>
-                        <div style="background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px;">
+                        <div
+                            style="background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 20px; font-weight: 600; font-size: 14px;">
                             ใช้ไป: <span id="dash-today-expense">฿0.00</span>
                         </div>
                     </div>
-                    
-                    <div class="table-container" style="background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+
+                    <div class="table-container"
+                        style="background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
                         <table id="table-dash-daily" class="data-table" style="margin-bottom: 0;">
                             <thead>
                                 <tr>
@@ -136,7 +132,8 @@
                                 <!-- JS will populate this -->
                             </tbody>
                         </table>
-                        <div id="dash-daily-empty" style="text-align: center; padding: 24px; color: #6b7280; font-size: 14px; display: none;">
+                        <div id="dash-daily-empty"
+                            style="text-align: center; padding: 24px; color: #6b7280; font-size: 14px; display: none;">
                             ไม่มีรายการใช้จ่ายในวันนี้ ✨
                         </div>
                     </div>
@@ -288,7 +285,8 @@
                         <div class="form-group row">
                             <div class="col">
                                 <label for="dc-due">🗓 วันกำหนดชำระ (วันที่ 1-31)</label>
-                                <input type="number" id="dc-due" min="1" max="31" placeholder="เช่น 5 (หมายถึงวันที่ 5 ของเดือน)">
+                                <input type="number" id="dc-due" min="1" max="31"
+                                    placeholder="เช่น 5 (หมายถึงวันที่ 5 ของเดือน)">
                             </div>
                             <div class="col">
                                 <label for="dc-loan-date">📆 วันที่เริ่มกู้ยืม / เริ่มผ่อน</label>
@@ -371,8 +369,10 @@
                     </form>
 
                     <div style="display:flex; justify-content:flex-end; margin-bottom: 12px; gap: 8px;">
-                        <button id="btn-income-today" class="btn btn-primary btn-sm" onclick="app.setIncomeView('today')">แสดงรายรับวันนี้</button>
-                        <button id="btn-income-all" class="btn btn-secondary btn-sm" onclick="app.setIncomeView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
+                        <button id="btn-income-today" class="btn btn-tab-active btn-sm"
+                            onclick="app.setIncomeView('today')">แสดงรายรับวันนี้</button>
+                        <button id="btn-income-all" class="btn btn-tab-default btn-sm"
+                            onclick="app.setIncomeView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
                     </div>
                     <div class="table-container">
                         <table id="table-trans-income" class="data-table">
@@ -437,8 +437,10 @@
                     </form>
 
                     <div style="display:flex; justify-content:flex-end; margin-bottom: 12px; gap: 8px;">
-                        <button id="btn-expense-today" class="btn btn-primary btn-sm" onclick="app.setExpenseView('today')">แสดงรายจ่ายวันนี้</button>
-                        <button id="btn-expense-all" class="btn btn-secondary btn-sm" onclick="app.setExpenseView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
+                        <button id="btn-expense-today" class="btn btn-tab-active btn-sm"
+                            onclick="app.setExpenseView('today')">แสดงรายจ่ายวันนี้</button>
+                        <button id="btn-expense-all" class="btn btn-tab-default btn-sm"
+                            onclick="app.setExpenseView('all')">ดูทั้งหมด (จัดกลุ่มรายวัน)</button>
                     </div>
                     <div class="table-container">
                         <table id="table-trans-expense" class="data-table">
@@ -500,9 +502,9 @@
 
                     <!-- Main Tabs (ให้ยืม / ขอยืม) -->
                     <div style="display:flex; gap:10px; margin-bottom:20px;">
-                        <button id="meal-main-tab-lend" class="btn btn-primary" onclick="app.switchMealMainTab('lend')"
-                            style="flex:1;">📤 ให้ยืม / ออกให้</button>
-                        <button id="meal-main-tab-borrow" class="btn btn-secondary"
+                        <button id="meal-main-tab-lend" class="btn btn-tab-active"
+                            onclick="app.switchMealMainTab('lend')" style="flex:1;">📤 ให้ยืม / ออกให้</button>
+                        <button id="meal-main-tab-borrow" class="btn btn-tab-default"
                             onclick="app.switchMealMainTab('borrow')" style="flex:1;">📥 ขอยืม / คนอื่นออกให้</button>
                     </div>
 
@@ -640,9 +642,9 @@
 
             <!-- Toggle: หารเท่าๆ / กรอกเอง -->
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button id="meal-bill-tab-equal" class="btn btn-primary btn-small"
+                <button id="meal-bill-tab-equal" class="btn btn-tab-active btn-small"
                     onclick="app.switchMealBillTab('equal')" style="flex:1;">⚖️ หารเท่าๆ กัน</button>
-                <button id="meal-bill-tab-custom" class="btn btn-secondary btn-small"
+                <button id="meal-bill-tab-custom" class="btn btn-tab-default btn-small"
                     onclick="app.switchMealBillTab('custom')" style="flex:1;">✏️ กรอกเอง</button>
             </div>
 
@@ -843,6 +845,44 @@
                 การนำเข้าข้อมูลจะล้างข้อมูลเดิมในเครื่องนี้ทั้งหมด</p>
         </div>
     </div>
+
+    <!-- Data Management Menu Modal -->
+    <div id="data-management-modal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div class="view-header" style="justify-content: center; margin-bottom: 24px;">
+                <h2 style="margin: 0; font-size: 20px;">⚙️ การจัดการข้อมูล</h2>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn btn-secondary" onclick="app.closeDataManagementModal(); app.exportForAI()"
+                    style="justify-content: flex-start; padding: 16px;">
+                    <span style="font-size: 20px;">🤖</span> ส่งออกให้ AI ประเมิน
+                </button>
+                <button class="btn btn-secondary"
+                    onclick="app.closeDataManagementModal(); document.getElementById('import-file').click()"
+                    style="justify-content: flex-start; padding: 16px;">
+                    <span style="font-size: 20px;">📂</span> นำเข้าข้อมูล (JSON)
+                </button>
+                <button class="btn btn-secondary" onclick="app.closeDataManagementModal(); app.exportData()"
+                    style="justify-content: flex-start; padding: 16px;">
+                    <span style="font-size: 20px;">💾</span> ส่งออกข้อมูล (JSON)
+                </button>
+                <button class="btn btn-danger" onclick="app.closeDataManagementModal(); app.confirmClearData()"
+                    style="justify-content: flex-start; padding: 16px;">
+                    <span style="font-size: 20px;">🗑️</span> ล้างข้อมูลทั้งหมด
+                </button>
+            </div>
+
+            <div class="form-group" style="margin-top: 24px;">
+                <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;"
+                    onclick="app.closeDataManagementModal()">
+                    ปิด
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="import-file" style="display: none;" accept=".json" onchange="app.importData(this.files[0])">
 
     <script src="js/store.js"></script>
     <script src="js/ui.js"></script>
