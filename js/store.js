@@ -7,7 +7,8 @@ const Store = {
         INCOMES: 'finance_incomes',
         EXPENSES: 'finance_expenses',
         DEBT_PAYMENTS: 'finance_debt_payments',
-        MEAL_SPLITS: 'finance_meal_splits'
+        MEAL_SPLITS: 'finance_meal_splits',
+        INSTALLMENT_NAME_CAT: 'finance_installment_names'
     },
 
     // Initialize mock data if empty
@@ -47,6 +48,7 @@ const Store = {
         if (key === this.keys.EXPENSES) prefix = 'T-EXP';
         if (key === this.keys.DEBT_PAYMENTS) prefix = 'T-DBT';
         if (key === this.keys.MEAL_SPLITS) prefix = 'MEAL';
+        if (key === this.keys.INSTALLMENT_NAME_CAT) prefix = 'INST-CAT';
 
         // Simple random ID generation
         item.id = `${prefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -126,9 +128,12 @@ const Store = {
 
                 let loanHasStarted = true;
                 if (debt.loanDate) {
-                    const [lYear, lMonth] = debt.loanDate.split('-').map(s => parseInt(s, 10));
-                    if (lYear > tYear) loanHasStarted = false;
-                    else if (lYear === tYear && (lMonth - 1) > tMonth) loanHasStarted = false;
+                    const loanDateObj = new Date(debt.loanDate);
+                    const billDateObj = new Date(tYear, tMonth, dueDateNum);
+                    
+                    if (billDateObj <= loanDateObj) {
+                        loanHasStarted = false;
+                    }
                 }
 
                 if (!alreadyExists && loanHasStarted) {
@@ -213,31 +218,33 @@ const Store = {
         const unpaidBills = debtPayments.filter(dp => dp.isPaid === false);
 
         const totalIncome = incomes.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-
-        // Base expenses + Paid regular expense bills
         const baseExpenseAmount = expenses.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-        const paidExpenseBillsAmount = paidBills
-            .filter(b => b.categoryId) // Only regular expenses, not debt payments
-            .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-        const totalExpense = baseExpenseAmount + paidExpenseBillsAmount;
+        let legacyPaidBillsAmount = 0;
 
-        // Calculate Debt Parts
-        // Unpaid current bills (both debt and expenses for dashboard notification)
+        paidBills.forEach(b => {
+            const hasExpenseRow = expenses.some(e => e.id === b.expenseTxId || e.fromBillId === b.id);
+            if (!hasExpenseRow) {
+                legacyPaidBillsAmount += parseFloat(b.amount || 0);
+            }
+        });
+
+        // totalExpense includes base expenses (which now naturally contain new paid bills) + legacy missing paid bills
+        const totalExpense = baseExpenseAmount + legacyPaidBillsAmount;
+
+        // Unpaid current bills
         const unpaidDebtAmount = unpaidBills.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-        // Paid debt bills (for balance and debt remaining)
+        // Paid debt bills (for debt remaining logic)
         const totalPaidDebtAmount = paidBills
             .filter(b => b.debtId)
             .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
 
-        // Total Base Debt - Paid Debt Bills
         const totalDebtAmount = debts.reduce((sum, item) => sum + parseFloat(item.totalAmount || 0), 0);
         const debtRemaining = Math.max(0, totalDebtAmount - totalPaidDebtAmount);
 
-        // Account balance (Income - Base Expense - Total Paid Bills)
-        const totalPaidBillsAmount = paidBills.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-        const balance = totalIncome - baseExpenseAmount - totalPaidBillsAmount;
+        // Account balance
+        const balance = totalIncome - totalExpense;
 
         return {
             totalIncome,

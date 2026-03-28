@@ -43,8 +43,8 @@
                 <button class="nav-item" data-target="expense-category">
                     <span class="icon">📉</span> หมวดหมู่รายจ่าย
                 </button>
-                <button class="nav-item" data-target="debt-category">
-                    <span class="icon">💳</span> รายการหนี้สิน
+                <button class="nav-item" data-target="installment-name-category">
+                    <span class="icon">🏷️</span> หมวดหมู่ชื่อการผ่อน
                 </button>
 
                 <div class="nav-section">บันทึกรายการ</div>
@@ -54,6 +54,10 @@
                 <button class="nav-item" data-target="transaction-expense">
                     <span class="icon">💸</span> บันทึกรายจ่าย
                 </button>
+                <button class="nav-item" data-target="debt-category">
+                    <span class="icon">💳</span> การผ่อน
+                </button>
+
                 <div class="nav-section">เครื่องมือ</div>
                 <button class="nav-item" onclick="app.toggleCalculator()">
                     <span class="icon">🧮</span> เครื่องคิดเลข
@@ -238,6 +242,42 @@
                 </div>
             </section>
 
+            <!-- Manage Installment Name Categories -->
+            <section id="installment-name-category" class="view-section">
+                <header class="view-header">
+                    <h1>จัดการตารางชื่อการผ่อน</h1>
+                </header>
+                <div class="content-panel">
+                    <form id="form-installment-name-category" class="data-form">
+                        <input type="hidden" id="inc-id">
+                        <div class="form-group row">
+                            <div class="col">
+                                <label for="inc-name">ชื่อการผ่อน</label>
+                                <input type="text" id="inc-name" required placeholder="เช่น ผ่อนรถ, บัตรเครดิต">
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+                            <button type="button" class="btn btn-secondary"
+                                onclick="app.resetForm('form-installment-name-category')">ล้างข้อมูล</button>
+                        </div>
+                    </form>
+
+                    <div class="table-container">
+                        <table id="table-installment-name-category" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>ชื่อ</th>
+                                    <th>จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- Manage Debt Categories -->
             <section id="debt-category" class="view-section section-debt-master">
                 <header class="view-header">
@@ -246,7 +286,7 @@
                             style="width:52px; height:52px; background:linear-gradient(135deg,#6366F1,#4338CA); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:24px; box-shadow:0 4px 12px rgba(99,102,241,0.35);">
                             💳</div>
                         <div>
-                            <h1 style="margin:0; font-size:24px;">รายการหนี้สิน</h1>
+                            <h1 style="margin:0; font-size:24px;">การผ่อน</h1>
                             <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                                 <span
                                     style="background:#EEF2FF; color:#4338CA; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700;">📋
@@ -262,8 +302,10 @@
                         <input type="hidden" id="dc-id">
                         <div class="form-group row">
                             <div class="col">
-                                <label for="dc-name">📝 ชื่อหนี้สิน</label>
-                                <input type="text" id="dc-name" required placeholder="เช่น ผ่อนรถ, บัตรเครดิต">
+                                <label for="dc-name">📝 ชื่อการผ่อน</label>
+                                <select id="dc-name" required>
+                                    <option value="">-- เลือกชื่อการผ่อน --</option>
+                                </select>
                             </div>
                         </div>
                         <div class="form-group row">
@@ -293,10 +335,6 @@
                                 <input type="date" id="dc-loan-date">
                             </div>
                         </div>
-                        <div class="form-group checkbox-group">
-                            <input type="checkbox" id="dc-monthly">
-                            <label for="dc-monthly">🔄 สร้างบิลอัตโนมัติทุกเดือน</label>
-                        </div>
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary">💾 บันทึกข้อมูล</button>
                             <button type="button" class="btn btn-secondary"
@@ -309,7 +347,7 @@
                             <thead>
                                 <tr>
                                     <th>ID</th>
-                                    <th>ชื่อหนี้สิน</th>
+                                    <th>ชื่อการผ่อน</th>
                                     <th>ยอดรวม</th>
                                     <th>วันกำหนด</th>
                                     <th>งวด</th>
@@ -479,8 +517,8 @@
                             <thead>
                                 <tr>
                                     <th>วันที่ (รอบบิล)</th>
-                                    <th>ID หนี้สิน</th>
-                                    <th>ชื่อหนี้สิน</th>
+                                    <th>ID การผ่อน</th>
+                                    <th>ชื่อการผ่อน</th>
                                     <th>ยอดเรียกเก็บ</th>
                                     <th>สถานะ</th>
                                     <th>จัดการ</th>

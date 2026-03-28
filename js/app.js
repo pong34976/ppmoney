@@ -205,6 +205,20 @@ const app = {
             document.getElementById('ec-amount-container').style.display = e.target.checked ? 'flex' : 'none';
         });
 
+        document.getElementById('form-installment-name-category').addEventListener('submit', e => {
+            e.preventDefault();
+            const id = document.getElementById('inc-id').value;
+            const data = {
+                name: document.getElementById('inc-name').value
+            };
+
+            if (id) Store.update(Store.keys.INSTALLMENT_NAME_CAT, id, data);
+            else Store.add(Store.keys.INSTALLMENT_NAME_CAT, data);
+
+            this.resetForm('form-installment-name-category');
+            this.refreshAll();
+        });
+
         document.getElementById('form-debt-category').addEventListener('submit', e => {
             e.preventDefault();
             const id = document.getElementById('dc-id').value;
@@ -214,7 +228,7 @@ const app = {
                 termMonths: parseInt(document.getElementById('dc-term').value) || 1,
                 dueDate: document.getElementById('dc-due').value ? parseInt(document.getElementById('dc-due').value) : '',
                 loanDate: document.getElementById('dc-loan-date').value || '',
-                monthly: document.getElementById('dc-monthly').checked
+                monthly: true
             };
 
             if (!id) {
@@ -529,6 +543,7 @@ const app = {
 
         this.renderIncomeCategories();
         this.renderExpenseCategories();
+        this.renderInstallmentNameCategories();
         this.renderDebtCategories();
 
         this.renderIncomeTransactions();
@@ -653,6 +668,26 @@ const app = {
         });
     },
 
+    renderInstallmentNameCategories() {
+        const data = Store.getAll(Store.keys.INSTALLMENT_NAME_CAT);
+        UI.renderTable('table-installment-name-category', data, [
+            { key: 'id' },
+            { key: 'name' }
+        ], {
+            onEdit: (item) => {
+                document.getElementById('inc-id').value = item.id;
+                document.getElementById('inc-name').value = item.name;
+
+                document.querySelector('[data-target="installment-name-category"]').click();
+                window.scrollTo(0, 0);
+            },
+            onDelete: (id) => {
+                Store.delete(Store.keys.INSTALLMENT_NAME_CAT, id);
+                this.refreshAll();
+            }
+        });
+    },
+
     renderDebtCategories() {
         const data = Store.getAll(Store.keys.DEBT_CAT);
 
@@ -677,7 +712,7 @@ const app = {
                         ค่างวด
                     </button>
                     <button class="btn btn-edit btn-sm" onclick="app.editDebtCategory('${item.id}')" title="แก้ไข">✏️ แก้ไข</button>
-                    <button class="btn btn-danger btn-sm" onclick="app.deleteDebtCategory('${item.id}')" title="ลบหนี้สินนี้ทั้งหมด!">❌ ลบหนี้สิน</button>
+                    <button class="btn btn-danger btn-sm" onclick="app.deleteDebtCategory('${item.id}')" title="ลบการผ่อนนี้ทั้งหมด!">❌ ลบการผ่อน</button>
                 </td>
             `;
             tbody.appendChild(tr);
@@ -689,7 +724,7 @@ const app = {
         if (!debt) return;
 
         document.getElementById('inst-debt-id').value = id;
-        document.getElementById('installment-debt-name').textContent = `หนี้สิน: ${debt.name} (ยอดตั้งต้น: ${UI.formatCurrency(debt.totalAmount)})`;
+        document.getElementById('installment-debt-name').textContent = `การผ่อน: ${debt.name} (ยอดตั้งต้น: ${UI.formatCurrency(debt.totalAmount)})`;
 
         const isFixed = debt.paymentType !== 'custom';
         document.getElementById('inst-is-fixed').checked = isFixed;
@@ -780,7 +815,6 @@ const app = {
         document.getElementById('dc-term').value = item.termMonths || 1;
         document.getElementById('dc-due').value = item.dueDate;
         document.getElementById('dc-loan-date').value = item.loanDate;
-        document.getElementById('dc-monthly').checked = item.monthly === true;
 
         document.querySelector('[data-target="debt-category"]').click();
         window.scrollTo(0, 0);
@@ -790,7 +824,7 @@ const app = {
         const debt = Store.getById(Store.keys.DEBT_CAT, id);
         const name = debt ? debt.name : id;
         UI.showConfirm(
-            `⚠️ ลบรายการหนี้สิน: "${name}"\n\n► บิลรายเดือนทั้งหมดของหนี้นี้จะถูกลบด้วย!\n\nคุณแน่ใจหรือไม่?`,
+            `⚠️ ลบการผ่อน: "${name}"\n\n► บิลรายเดือนทั้งหมดของการผ่อนนี้จะถูกลบด้วย!\n\nคุณแน่ใจหรือไม่?`,
             () => {
                 Store.delete(Store.keys.DEBT_CAT, id);
                 this.refreshAll();
@@ -969,10 +1003,9 @@ const app = {
     },
 
     renderDebtTransactions() {
-        const data = Store.getAll(Store.keys.DEBT_PAYMENTS).sort((a, b) => new Date(b.date) - new Date(a.date));
+        const data = Store.getAll(Store.keys.DEBT_PAYMENTS);
         const categories = Store.getAll(Store.keys.DEBT_CAT);
 
-        // Custom render table for Debt Bills
         const table = document.getElementById('table-trans-debt');
         if (!table) return;
         const tbody = table.querySelector('tbody');
@@ -984,15 +1017,15 @@ const app = {
             return;
         }
 
-        data.forEach(item => {
-            const tr = document.createElement('tr');
+        const groupedMap = new Map();
 
+        data.forEach(item => {
             let catName = 'ไม่พบข้อมูล';
             let displayId = '';
 
             if (item.debtId) {
                 const cat = categories.find(c => c.id === item.debtId);
-                catName = cat ? cat.name : 'ไม่พบหนี้สิน';
+                catName = cat ? cat.name : 'ไม่พบการผ่อน';
                 displayId = item.debtId;
             } else if (item.categoryId) {
                 const expenseCats = Store.getAll(Store.keys.EXPENSE_CAT);
@@ -1001,45 +1034,74 @@ const app = {
                 displayId = item.categoryId;
             }
 
-            // Format month
             const d = new Date(item.date);
-            const formattedDate = d.toLocaleString('th-TH', { month: 'short', year: 'numeric' });
+            const monthYear = `${d.getFullYear()}-${d.getMonth()}`;
+            const isPaidStatus = item.isPaid ? 'paid' : 'unpaid';
+            const groupKey = `${catName}__${monthYear}__${isPaidStatus}`;
 
+            if (!groupedMap.has(groupKey)) {
+                groupedMap.set(groupKey, {
+                    catName,
+                    monthYear,
+                    isPaid: item.isPaid,
+                    displayId: [],
+                    totalAmount: 0,
+                    billIds: [],
+                    latestDate: item.date
+                });
+            }
+            
+            const g = groupedMap.get(groupKey);
+            g.totalAmount += parseFloat(item.amount || 0);
+            g.billIds.push(item.id);
+            if (!g.displayId.includes(displayId)) g.displayId.push(displayId);
+            
+            if (new Date(item.date) > new Date(g.latestDate)) {
+                g.latestDate = item.date;
+            }
+        });
+
+        const groupedArray = Array.from(groupedMap.values()).sort((a, b) => new Date(b.latestDate) - new Date(a.latestDate));
+
+        groupedArray.forEach(g => {
+            const tr = document.createElement('tr');
+            const formattedDate = new Date(g.latestDate).toLocaleString('th-TH', { month: 'short', year: 'numeric' });
+            
             tr.innerHTML = `
                 <td>${formattedDate}</td>
-                <td>${displayId}</td>
-                <td>${catName}</td>
-                <td>${UI.formatCurrency(item.amount)}</td>
-                <td>${item.isPaid ? '<span class="badge badge-success">จ่ายแล้ว</span>' : '<span class="badge badge-danger">ยังไม่จ่าย</span>'}</td>
+                <td>${g.displayId.join(', ')}</td>
+                <td>${g.catName}</td>
+                <td style="font-weight: 500;">${UI.formatCurrency(g.totalAmount)}</td>
+                <td>${g.isPaid ? '<span class="badge badge-success">จ่ายแล้ว</span>' : '<span class="badge badge-danger">ยังไม่จ่าย</span>'}</td>
             `;
 
             const tdActions = document.createElement('td');
             tdActions.className = 'actions-cell';
+            const billIdsStr = g.billIds.join(',');
 
             const btnEdit = document.createElement('button');
             btnEdit.className = 'btn btn-small btn-edit';
             btnEdit.textContent = '✏️ แก้ไขยอด';
-            btnEdit.onclick = () => this.editDebtBill(item.id, catName);
+            btnEdit.onclick = () => this.editDebtBill(billIdsStr, g.catName, g.totalAmount);
 
             const btnPay = document.createElement('button');
-            if (item.isPaid) {
+            if (g.isPaid) {
                 btnPay.className = 'btn btn-small btn-secondary';
                 btnPay.textContent = 'ยกเลิกจ่าย';
-                btnPay.onclick = () => this.toggleBillPaid(item.id, false);
-                btnEdit.style.display = 'none'; // Hide edit if paid
+                btnPay.onclick = () => this.toggleBillPaid(billIdsStr, false);
+                btnEdit.style.display = 'none';
             } else {
                 btnPay.className = 'btn btn-small btn-primary';
                 btnPay.textContent = 'กดจ่าย';
-                btnPay.onclick = () => this.toggleBillPaid(item.id, true);
+                btnPay.onclick = () => this.toggleBillPaid(billIdsStr, true);
             }
 
             const btnDel = document.createElement('button');
             btnDel.className = 'btn btn-small btn-danger';
             btnDel.textContent = '🗑 ลบบิล';
             btnDel.onclick = () => {
-                const billMonth = new Date(item.date).toLocaleString('th-TH', { month: 'long', year: 'numeric' });
-                UI.showConfirm(`🧾 ลบบิล: "${catName}" เดือน ${billMonth}\n\n► ลบเฉพาะบิลนี้ ไม่กระทบรายการหนี้สินตั้งต้น\n\nคุณแน่ใจหรือไม่?`, () => {
-                    Store.delete(Store.keys.DEBT_PAYMENTS, item.id);
+                UI.showConfirm(`🧾 ลบบิล: "${g.catName}" เดือน ${formattedDate}\n\n► หากมีหลายบิลรวมอยู่ จะถูกลบทั้งหมด ไม่กระทบการผ่อนตั้งต้น\n\nคุณแน่ใจหรือไม่?`, () => {
+                    g.billIds.forEach(id => Store.delete(Store.keys.DEBT_PAYMENTS, id));
                     this.refreshAll();
                 });
             };
@@ -1052,19 +1114,83 @@ const app = {
         });
     },
 
-    toggleBillPaid(billId, isPaid) {
-        const bill = Store.getById(Store.keys.DEBT_PAYMENTS, billId);
-        if (bill) {
-            Store.update(Store.keys.DEBT_PAYMENTS, billId, { isPaid });
+    toggleBillPaid(billIdStr, isPaid) {
+        const billIds = billIdStr.split(',');
+        let hasUpdates = false;
+
+        billIds.forEach(billId => {
+            const bill = Store.getById(Store.keys.DEBT_PAYMENTS, billId);
+            if (bill) {
+                Store.update(Store.keys.DEBT_PAYMENTS, billId, { isPaid });
+
+                if (isPaid) {
+                    let targetCatId = null;
+                    let note = 'ชำระบิล';
+
+                    if (bill.debtId) {
+                        let expenseCats = Store.getAll(Store.keys.EXPENSE_CAT);
+                        let debtExpenseCat = expenseCats.find(c => c.name === 'ชำระหนี้สิน');
+                        if (!debtExpenseCat) {
+                            debtExpenseCat = Store.add(Store.keys.EXPENSE_CAT, { name: 'ชำระหนี้สิน', monthly: false });
+                        }
+                        targetCatId = debtExpenseCat.id;
+                        
+                        const debt = Store.getById(Store.keys.DEBT_CAT, bill.debtId);
+                        if (debt) note = `ชำระการผ่อน: ${debt.name}`;
+                    } else if (bill.categoryId) {
+                        targetCatId = bill.categoryId;
+                        const cat = Store.getById(Store.keys.EXPENSE_CAT, bill.categoryId);
+                        if (cat) note = `จ่ายบิลรายเดือน: ${cat.name}`;
+                    }
+
+                    if (targetCatId) {
+                        const now = new Date();
+                        const autoTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                        
+                        const newExpense = Store.add(Store.keys.EXPENSES, {
+                            date: UI.getTodayISO(),
+                            time: autoTime,
+                            categoryId: targetCatId,
+                            amount: bill.amount,
+                            note: note,
+                            fromBillId: billId
+                        });
+                        
+                        Store.update(Store.keys.DEBT_PAYMENTS, billId, { expenseTxId: newExpense.id });
+                    }
+                } else {
+                    if (bill.expenseTxId) {
+                        Store.delete(Store.keys.EXPENSES, bill.expenseTxId);
+                        Store.update(Store.keys.DEBT_PAYMENTS, billId, { expenseTxId: null });
+                    } else {
+                        const expenses = Store.getAll(Store.keys.EXPENSES);
+                        const matchedExpense = expenses.find(e => e.fromBillId === billId);
+                        if (matchedExpense) {
+                            Store.delete(Store.keys.EXPENSES, matchedExpense.id);
+                        }
+                    }
+                }
+                hasUpdates = true;
+            }
+        });
+
+        if (hasUpdates) {
             this.refreshAll();
         }
     },
 
-    editDebtBill(billId, catName) {
+    editDebtBill(billIdStr, catName, displayAmount) {
+        const billIds = billIdStr.split(',');
+        if (billIds.length > 1) {
+            alert('ไม่สามารถแก้ไขยอดที่รวมกันหลายบิลได้ โปรดแยกแก้ไขที่รายการตั้งต้นทีละรายการ');
+            return;
+        }
+        const billId = billIds[0];
+        
         const bill = Store.getById(Store.keys.DEBT_PAYMENTS, billId);
         if (!bill || bill.isPaid) return;
 
-        const currentAmount = parseFloat(bill.amount) || 0;
+        const currentAmount = displayAmount !== undefined ? displayAmount : (parseFloat(bill.amount) || 0);
         const newAmountStr = prompt(`แก้ไขยอดเรียกเก็บสำหรับ:\n${catName}\n\nกรอกยอดใหม่ (จากเดิม ${UI.formatCurrency(currentAmount)}):`, currentAmount);
         
         if (newAmountStr === null) return;
@@ -1075,34 +1201,25 @@ const app = {
             return;
         }
 
-        // Update the bill itself
         Store.update(Store.keys.DEBT_PAYMENTS, billId, { amount: newAmount });
 
-        // If it's a debt bill (not an expense), sync back to DEBT_CAT customPayments
         if (bill.debtId) {
             const debt = Store.getById(Store.keys.DEBT_CAT, bill.debtId);
             if (debt) {
-                // Find index of the month this bill belongs to
                 const allDebtBills = Store.getAll(Store.keys.DEBT_PAYMENTS)
                     .filter(b => b.debtId === debt.id)
-                    .sort((a, b) => new Date(a.date) - new Date(b.date)); // Oldest first
+                    .sort((a, b) => new Date(a.date) - new Date(b.date));
                 
                 const billIndex = allDebtBills.findIndex(b => b.id === billId);
 
                 if (billIndex >= 0) {
-                    // Change payment setting to 'custom' to save the specific month amount
                     let customPayments = debt.customPayments || [];
-                    
-                    // If switching from fixed, initialize custom payments with the fixed amount
                     if (debt.paymentType !== 'custom' || customPayments.length === 0) {
                         const terms = debt.termMonths || 1;
                         const fixedAmt = debt.fixedPaymentAmount || (debt.totalAmount / terms);
                         customPayments = Array(terms).fill(fixedAmt);
                     }
-                    
-                    // Update the specific month
                     customPayments[billIndex] = newAmount;
-                    
                     Store.update(Store.keys.DEBT_CAT, debt.id, {
                         paymentType: 'custom',
                         customPayments: customPayments
@@ -1110,7 +1227,6 @@ const app = {
                 }
             }
         } else if (bill.categoryId) {
-            // It's a regular monthly expense bill. Let's update the master category too.
             Store.update(Store.keys.EXPENSE_CAT, bill.categoryId, { amount: newAmount });
         }
 
@@ -1565,6 +1681,7 @@ const app = {
         UI.populateSelect('ti-category', Store.getAll(Store.keys.INCOME_CAT), 'id', 'name');
         UI.populateSelect('te-category', Store.getAll(Store.keys.EXPENSE_CAT), 'id', 'name');
         UI.populateSelect('td-category', Store.getAll(Store.keys.DEBT_CAT), 'id', 'name');
+        UI.populateSelect('dc-name', Store.getAll(Store.keys.INSTALLMENT_NAME_CAT), 'name', 'name');
     },
 
     // Data Management
@@ -1654,7 +1771,7 @@ const app = {
 
     confirmClearData() {
         UI.showConfirm(
-            '⚠️ ล้างข้อมูลทั้งหมด\n\nรายการรายรับ รายจ่าย หนี้สิน บิล และข้อมูลทั้งหมดจะถูกลบถาวร!\n\nคุณแน่ใจหรือไม่?',
+            '⚠️ ล้างข้อมูลทั้งหมด\n\nรายการรายรับ รายจ่าย การผ่อน บิล และข้อมูลทั้งหมดจะถูกลบถาวร!\n\nคุณแน่ใจหรือไม่?',
             () => {
                 Store.clearAll();
                 this.refreshAll();

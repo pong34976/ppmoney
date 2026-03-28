@@ -90,7 +90,7 @@ const UI = {
         data.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item[valueKey];
-            opt.textContent = `${item[labelKey]} (${item[valueKey]})`;
+            opt.textContent = item[labelKey];
             select.appendChild(opt);
         });
     },
