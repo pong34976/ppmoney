@@ -164,6 +164,13 @@ const app = {
             const borrowerCont = document.getElementById('ms-borrower-container');
             if (borrowerCont) borrowerCont.style.display = 'flex';
         }
+
+        if (formId === 'form-debt-category') {
+            const incomeBox = document.getElementById('dc-add-income-container');
+            if (incomeBox) incomeBox.style.display = '';
+            const incomeChk = document.getElementById('dc-add-income');
+            if (incomeChk) incomeChk.checked = false;
+        }
     },
 
     setupForms() {
@@ -222,6 +229,7 @@ const app = {
         document.getElementById('form-debt-category').addEventListener('submit', e => {
             e.preventDefault();
             const id = document.getElementById('dc-id').value;
+            const addToIncome = !id && document.getElementById('dc-add-income')?.checked;
             const data = {
                 name: document.getElementById('dc-name').value,
                 totalAmount: parseFloat(document.getElementById('dc-total').value) || 0,
@@ -240,6 +248,30 @@ const app = {
 
             if (id) Store.update(Store.keys.DEBT_CAT, id, data);
             else Store.add(Store.keys.DEBT_CAT, data);
+
+            // Add income entry if checkbox was ticked (new records only)
+            if (addToIncome && data.totalAmount > 0) {
+                // Find or auto-create "กู้/ยืม" income category
+                let cats = Store.getAll(Store.keys.INCOME_CAT);
+                let cat = cats.find(c => c.name === 'กู้/ยืม');
+                if (!cat) {
+                    Store.add(Store.keys.INCOME_CAT, { name: 'กู้/ยืม', monthly: false });
+                    cats = Store.getAll(Store.keys.INCOME_CAT);
+                    cat = cats.find(c => c.name === 'กู้/ยืม');
+                }
+                if (cat) {
+                    const now = new Date();
+                    const autoTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+                    const incomeDate = data.loanDate || UI.getTodayISO();
+                    Store.add(Store.keys.INCOMES, {
+                        date: incomeDate,
+                        time: autoTime,
+                        categoryId: cat.id,
+                        amount: data.totalAmount,
+                        note: data.name
+                    });
+                }
+            }
 
             this.resetForm('form-debt-category');
             this.refreshAll();
@@ -691,21 +723,48 @@ const app = {
     renderDebtCategories() {
         const data = Store.getAll(Store.keys.DEBT_CAT);
 
-        const thead = document.querySelector(`#table-debt-category thead`);
         const tbody = document.querySelector(`#table-debt-category tbody`);
         if (!tbody) return;
 
         tbody.innerHTML = '';
         data.forEach(item => {
+            // Derive ค่างวด from installment settings
+            const total = parseFloat(item.totalAmount) || 0;
+            const terms = parseInt(item.termMonths) || 1;
+            let ppt = 0;
+
+            if (item.paymentType === 'fixed' || !item.paymentType) {
+                ppt = parseFloat(item.fixedPaymentAmount) || 0;
+            } else {
+                // custom: use average of non-zero payments
+                const payments = item.customPayments || [];
+                const nonZero = payments.filter(v => v > 0);
+                ppt = nonZero.length > 0 ? nonZero.reduce((a, b) => a + b, 0) / nonZero.length : 0;
+            }
+
+            let interestPct = '-';
+            let interestAmt = '-';
+            let paymentDisplay = ppt > 0 ? UI.formatCurrency(ppt) : '-';
+
+            if (ppt > 0 && total > 0) {
+                const totalPaid = ppt * terms;
+                const interest = totalPaid - total;
+                const pct = (interest / total) * 100;
+                interestPct = `<span style="color:${pct > 0 ? '#b45309' : '#059669'}; font-weight:700;">${pct.toFixed(2)}%</span>`;
+                interestAmt = `<span style="color:${interest > 0 ? '#dc2626' : '#059669'}; font-weight:700;">${UI.formatCurrency(interest)}</span>`;
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.id}</td>
                 <td>${item.name}</td>
                 <td>${UI.formatCurrency(item.totalAmount)}</td>
+                <td>${paymentDisplay}</td>
                 <td>${item.dueDate || '-'}</td>
                 <td>${item.termMonths || 1} งวด</td>
                 <td>${item.loanDate || '-'}</td>
-                <td>${item.monthly ? '✔' : '❌'}</td>
+                <td>${interestPct}</td>
+                <td>${interestAmt}</td>
                 <td style="min-width: 150px;">
                     <button class="btn btn-action btn-sm" onclick="app.openInstallmentModal('${item.id}')" title="จัดการค่างวด">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -818,6 +877,10 @@ const app = {
 
         document.querySelector('[data-target="debt-category"]').click();
         window.scrollTo(0, 0);
+
+        // Hide the "add to income" checkbox when editing
+        const incomeBox = document.getElementById('dc-add-income-container');
+        if (incomeBox) incomeBox.style.display = 'none';
     },
 
     deleteDebtCategory(id) {
